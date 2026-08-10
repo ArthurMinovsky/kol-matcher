@@ -1,0 +1,17 @@
+{
+  "business": "Dr. Pong Clinic",
+  "captured_at": "2024-01-15T00:00:00Z",
+  "source_type": "synthetic",
+  "note": "All creator records are synthetic — not scraped. Metrics are representative but fabricated for demonstration. No real person's data is used.",
+  "sources": [],
+  "candidate_count": 40,
+  "label_distribution": {
+    "2_clearly_relevant": 15,
+    "1_plausible": 7,
+    "0_irrelevant": 18
+  },
+  "campaign": {
+    "goal": "educational skincare",
+    "desired_style_tags": ["educational", "expert", "tutorial"]
+  }
+}

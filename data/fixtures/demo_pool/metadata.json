@@ -1,0 +1,13 @@
+{
+  "business": "Mixed-industry demo pool",
+  "captured_at": "2024-01-15T00:00:00Z",
+  "source_type": "synthetic",
+  "note": "Mixed-industry synthetic creators used as a deterministic fallback when live Apify TikTok data is unavailable. Not scraped.",
+  "candidate_count": 20,
+  "industry_mix": {
+    "beauty": 5,
+    "food": 5,
+    "travel": 5,
+    "fashion": 5
+  }
+}

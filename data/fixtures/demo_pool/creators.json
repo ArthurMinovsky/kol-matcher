@@ -1,0 +1,1006 @@
+[
+  {
+    "username": "beauty.noon",
+    "display_name": "Noon Beauty",
+    "bio": "รีวิวสกินแคร์และเมคอัพ ผิวสวยต้องรู้จักตัวเอง",
+    "tiktok_url": "https://www.tiktok.com/@beauty.noon",
+    "follower_count": 320000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "skincare",
+      "makeup",
+      "beauty review"
+    ],
+    "style_tags": [
+      "review",
+      "tutorial",
+      "lifestyle"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.9,
+    "thai_hashtag_count": 12,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "bn1",
+        "caption": "รีวิวเซรั่มลดสิว 7 วัน",
+        "hashtags": [
+          "สกินแคร์",
+          "รีวิว"
+        ],
+        "views": 250000,
+        "likes": 18000,
+        "comments": 1200,
+        "shares": 900
+      },
+      {
+        "post_id": "bn2",
+        "caption": "เมคอัพลุคใสๆ ไปทำงาน",
+        "hashtags": [
+          "เมคอัพ",
+          "ลุคทำงาน"
+        ],
+        "views": 180000,
+        "likes": 12000,
+        "comments": 800,
+        "shares": 500
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "derma.doc.view",
+    "display_name": "หมอผิวหนังวิว",
+    "bio": "แพทย์ผิวหนัง ให้ความรู้เรื่องสิว ฝ้า ริ้วรอย",
+    "tiktok_url": "https://www.tiktok.com/@derma.doc.view",
+    "follower_count": 540000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "dermatology",
+      "skincare",
+      "acne",
+      "beauty education"
+    ],
+    "style_tags": [
+      "educational",
+      "expert",
+      "tutorial"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.95,
+    "thai_hashtag_count": 15,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "dv1",
+        "caption": "สิวอักเสบ ดูแลยังไง",
+        "hashtags": [
+          "สิว",
+          "ผิวหนัง"
+        ],
+        "views": 400000,
+        "likes": 32000,
+        "comments": 2100,
+        "shares": 1500
+      },
+      {
+        "post_id": "dv2",
+        "caption": "ครีมกันแดดทาทุกวัน",
+        "hashtags": [
+          "กันแดด",
+          "ผิว"
+        ],
+        "views": 350000,
+        "likes": 28000,
+        "comments": 1800,
+        "shares": 1200
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "glow.with.june",
+    "display_name": "June Glow",
+    "bio": "Skincare routine & honest reviews",
+    "tiktok_url": "https://www.tiktok.com/@glow.with.june",
+    "follower_count": 180000,
+    "location": "Chiang Mai, Thailand",
+    "topic_tags": [
+      "skincare",
+      "product review",
+      "self-care"
+    ],
+    "style_tags": [
+      "review",
+      "lifestyle",
+      "ugc"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.6,
+    "thai_hashtag_count": 6,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "gj1",
+        "caption": "My morning routine สดใสทั้งวัน",
+        "hashtags": [
+          "skincare",
+          "routine"
+        ],
+        "views": 120000,
+        "likes": 8500,
+        "comments": 500,
+        "shares": 300
+      },
+      {
+        "post_id": "gj2",
+        "caption": "Honest review กันแดดตัวใหม่",
+        "hashtags": [
+          "review",
+          "sunscreen"
+        ],
+        "views": 95000,
+        "likes": 6200,
+        "comments": 400,
+        "shares": 250
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "skinlab.min",
+    "display_name": "Skin Lab Min",
+    "bio": "ผิวสุขภาพดีเริ่มที่วิทยาศาสตร์",
+    "tiktok_url": "https://www.tiktok.com/@skinlab.min",
+    "follower_count": 760000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "skincare",
+      "ingredient science",
+      "beauty education"
+    ],
+    "style_tags": [
+      "educational",
+      "expert",
+      "review"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.92,
+    "thai_hashtag_count": 14,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "sl1",
+        "caption": "Niacinamide ใช้ยังไงให้เห็นผล",
+        "hashtags": [
+          "สกินแคร์",
+          "วิทยาศาสตร์"
+        ],
+        "views": 500000,
+        "likes": 42000,
+        "comments": 2800,
+        "shares": 2000
+      },
+      {
+        "post_id": "sl2",
+        "caption": "Retinol กับผิวแพ้ง่าย",
+        "hashtags": [
+          "retinol",
+          "ผิวแพ้ง่าย"
+        ],
+        "views": 420000,
+        "likes": 35000,
+        "comments": 2300,
+        "shares": 1700
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "makeup.pim",
+    "display_name": "พิมพ์ เมคอัพ",
+    "bio": "แต่งหน้าตามเทรนด์ สอนลุคง่ายๆ",
+    "tiktok_url": "https://www.tiktok.com/@makeup.pim",
+    "follower_count": 410000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "makeup",
+      "beauty",
+      "tutorial"
+    ],
+    "style_tags": [
+      "tutorial",
+      "lifestyle",
+      "review"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.88,
+    "thai_hashtag_count": 10,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "mp1",
+        "caption": "ลุคสายฝอ แต่งง่าย 5 นาที",
+        "hashtags": [
+          "เมคอัพ",
+          "tutorial"
+        ],
+        "views": 220000,
+        "likes": 15000,
+        "comments": 900,
+        "shares": 600
+      },
+      {
+        "post_id": "mp2",
+        "caption": "รีวิวรองพื้นผิวเงา",
+        "hashtags": [
+          "รองพื้น",
+          "รีวิว"
+        ],
+        "views": 190000,
+        "likes": 12000,
+        "comments": 700,
+        "shares": 450
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "foodie.bank",
+    "display_name": "Bank กินเที่ยว",
+    "bio": "กินทั่วไทย รีวิวร้านเด็ด",
+    "tiktok_url": "https://www.tiktok.com/@foodie.bank",
+    "follower_count": 620000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "food",
+      "restaurant",
+      "street food",
+      "review"
+    ],
+    "style_tags": [
+      "review",
+      "mukbang",
+      "lifestyle"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.93,
+    "thai_hashtag_count": 11,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "fb1",
+        "caption": "ก๋วยเตี๋ยวเรือเจ้าเด็ดย่านวังหลัง",
+        "hashtags": [
+          "ก๋วยเตี๋ยว",
+          "streetfood"
+        ],
+        "views": 380000,
+        "likes": 28000,
+        "comments": 1800,
+        "shares": 1200
+      },
+      {
+        "post_id": "fb2",
+        "caption": "ร้านบุฟเฟ่ต์ซีฟู้ดคุ้มมั้ย",
+        "hashtags": [
+          "บุฟเฟ่ต์",
+          "รีวิว"
+        ],
+        "views": 310000,
+        "likes": 22000,
+        "comments": 1400,
+        "shares": 900
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "chef.nok",
+    "display_name": "เชฟนก สอนทำอาหาร",
+    "bio": "สูตรอาหารไทยง่ายๆ ทำได้ที่บ้าน",
+    "tiktok_url": "https://www.tiktok.com/@chef.nok",
+    "follower_count": 290000,
+    "location": "Nonthaburi, Thailand",
+    "topic_tags": [
+      "cooking",
+      "recipe",
+      "thai food"
+    ],
+    "style_tags": [
+      "tutorial",
+      "review",
+      "lifestyle"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.96,
+    "thai_hashtag_count": 13,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "cn1",
+        "caption": "ต้มยำกุ้งน้ำข้น ทำเองได้",
+        "hashtags": [
+          "สูตรอาหาร",
+          "ต้มยำ"
+        ],
+        "views": 210000,
+        "likes": 16000,
+        "comments": 1000,
+        "shares": 800
+      },
+      {
+        "post_id": "cn2",
+        "caption": "ผัดไทยไม่ติดกระทะ",
+        "hashtags": [
+          "ผัดไทย",
+          "ทำอาหาร"
+        ],
+        "views": 185000,
+        "likes": 13000,
+        "comments": 850,
+        "shares": 650
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "sweet.tooth.mint",
+    "display_name": "Mint Sweet Tooth",
+    "bio": "คาเฟ่ ขนมหวาน ชาไข่มุก",
+    "tiktok_url": "https://www.tiktok.com/@sweet.tooth.mint",
+    "follower_count": 150000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "dessert",
+      "cafe",
+      "food review"
+    ],
+    "style_tags": [
+      "review",
+      "lifestyle",
+      "ugc"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.85,
+    "thai_hashtag_count": 9,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "sm1",
+        "caption": "คาเฟ่ใหม่ย่านอารีย์",
+        "hashtags": [
+          "คาเฟ่",
+          "รีวิว"
+        ],
+        "views": 130000,
+        "likes": 9200,
+        "comments": 550,
+        "shares": 350
+      },
+      {
+        "post_id": "sm2",
+        "caption": "ชาไข่มุกร้านดัง อร่อยจริงมั้ย",
+        "hashtags": [
+          "ชาไข่มุก",
+          "ของหวาน"
+        ],
+        "views": 110000,
+        "likes": 7800,
+        "comments": 480,
+        "shares": 300
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "mukbang.ton",
+    "display_name": "ต้น มุกบัง",
+    "bio": "กินจุ กินอร่อย ทุกวัน",
+    "tiktok_url": "https://www.tiktok.com/@mukbang.ton",
+    "follower_count": 880000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "mukbang",
+      "food",
+      "entertainment"
+    ],
+    "style_tags": [
+      "mukbang",
+      "entertainment",
+      "lifestyle"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.78,
+    "thai_hashtag_count": 7,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "mt1",
+        "caption": "ชิมบุฟเฟ่ต์อาหารทะเล",
+        "hashtags": [
+          "มุกบัง",
+          "อาหารทะเล"
+        ],
+        "views": 600000,
+        "likes": 45000,
+        "comments": 3200,
+        "shares": 2100
+      },
+      {
+        "post_id": "mt2",
+        "caption": "กินชาบู 1 ชม",
+        "hashtags": [
+          "ชาบู",
+          "mukbang"
+        ],
+        "views": 520000,
+        "likes": 39000,
+        "comments": 2700,
+        "shares": 1800
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "easy.recipe.aom",
+    "display_name": "อ้อม สูตรง่าย",
+    "bio": "สูตรอาหารง่ายๆ 5 นาที",
+    "tiktok_url": "https://www.tiktok.com/@easy.recipe.aom",
+    "follower_count": 220000,
+    "location": "Chonburi, Thailand",
+    "topic_tags": [
+      "recipe",
+      "cooking",
+      "food"
+    ],
+    "style_tags": [
+      "tutorial",
+      "lifestyle"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.94,
+    "thai_hashtag_count": 12,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "ea1",
+        "caption": "มาม่าผัดกระเทียมพริกไทย",
+        "hashtags": [
+          "สูตรง่าย",
+          "อาหาร"
+        ],
+        "views": 170000,
+        "likes": 11000,
+        "comments": 650,
+        "shares": 500
+      },
+      {
+        "post_id": "ea2",
+        "caption": "ไข่กระทะอาหารเช้า",
+        "hashtags": [
+          "อาหารเช้า",
+          "สูตร"
+        ],
+        "views": 140000,
+        "likes": 9000,
+        "comments": 520,
+        "shares": 400
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "travel.with.ink",
+    "display_name": "Ink เที่ยวไปเรื่อย",
+    "bio": "พาเที่ยวทั่วไทย ที่พัก คาเฟ่ ธรรมชาติ",
+    "tiktok_url": "https://www.tiktok.com/@travel.with.ink",
+    "follower_count": 470000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "travel",
+      "hotel",
+      "cafe",
+      "nature"
+    ],
+    "style_tags": [
+      "vlog",
+      "lifestyle",
+      "review"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.9,
+    "thai_hashtag_count": 10,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "ti1",
+        "caption": "ที่พักวิวทะเลหมอก เขาค้อ",
+        "hashtags": [
+          "ที่พัก",
+          "เขาค้อ"
+        ],
+        "views": 290000,
+        "likes": 21000,
+        "comments": 1300,
+        "shares": 900
+      },
+      {
+        "post_id": "ti2",
+        "caption": "คาเฟ่ริมแม่น้ำเชียงใหม่",
+        "hashtags": [
+          "คาเฟ่",
+          "เชียงใหม่"
+        ],
+        "views": 240000,
+        "likes": 17000,
+        "comments": 1050,
+        "shares": 700
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "hotel.hunter.jay",
+    "display_name": "Jay Hotel Hunter",
+    "bio": "รีวิวโรงแรมและที่พักทั่วเอเชีย",
+    "tiktok_url": "https://www.tiktok.com/@hotel.hunter.jay",
+    "follower_count": 310000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "hotel",
+      "travel",
+      "review"
+    ],
+    "style_tags": [
+      "review",
+      "lifestyle",
+      "vlog"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.82,
+    "thai_hashtag_count": 8,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "hj1",
+        "caption": "โรงแรม 5 ดาวราคาหลักพัน",
+        "hashtags": [
+          "โรงแรม",
+          "รีวิว"
+        ],
+        "views": 200000,
+        "likes": 14000,
+        "comments": 850,
+        "shares": 550
+      },
+      {
+        "post_id": "hj2",
+        "caption": "Pool villa ภูเก็ต คุ้มไหม",
+        "hashtags": [
+          "ภูเก็ต",
+          "ที่พัก"
+        ],
+        "views": 175000,
+        "likes": 11500,
+        "comments": 700,
+        "shares": 450
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "backpack.beam",
+    "display_name": "Beam Backpacker",
+    "bio": "เที่ยวเอง งบน้อย ประเทศเพื่อนบ้าน",
+    "tiktok_url": "https://www.tiktok.com/@backpack.beam",
+    "follower_count": 190000,
+    "location": "Chiang Mai, Thailand",
+    "topic_tags": [
+      "travel",
+      "budget travel",
+      "itinerary"
+    ],
+    "style_tags": [
+      "vlog",
+      "ugc",
+      "lifestyle"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.88,
+    "thai_hashtag_count": 9,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "bb1",
+        "caption": "เที่ยวลาวใต้ 3 วัน 2 คืน",
+        "hashtags": [
+          "เที่ยว",
+          "ลาว"
+        ],
+        "views": 160000,
+        "likes": 10500,
+        "comments": 620,
+        "shares": 420
+      },
+      {
+        "post_id": "bb2",
+        "caption": "งบ 5,000 เที่ยวเชียงใหม่",
+        "hashtags": [
+          "เชียงใหม่",
+          "งบน้อย"
+        ],
+        "views": 145000,
+        "likes": 9200,
+        "comments": 540,
+        "shares": 380
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "sea.sun.sand",
+    "display_name": "Sea Sun Sand",
+    "bio": "ทะเลไทย เกาะสวย น้ำใส",
+    "tiktok_url": "https://www.tiktok.com/@sea.sun.sand",
+    "follower_count": 340000,
+    "location": "Phuket, Thailand",
+    "topic_tags": [
+      "travel",
+      "beach",
+      "island",
+      "nature"
+    ],
+    "style_tags": [
+      "vlog",
+      "lifestyle",
+      "ugc"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.86,
+    "thai_hashtag_count": 10,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "ss1",
+        "caption": "เกาะสิมิลัน 1 วัน น้ำใสมาก",
+        "hashtags": [
+          "ทะเล",
+          "ภูเก็ต"
+        ],
+        "views": 250000,
+        "likes": 19000,
+        "comments": 1100,
+        "shares": 800
+      },
+      {
+        "post_id": "ss2",
+        "caption": "ที่พักติดทะเลกระบี่",
+        "hashtags": [
+          "กระบี่",
+          "ที่พัก"
+        ],
+        "views": 210000,
+        "likes": 15000,
+        "comments": 900,
+        "shares": 600
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "city.walker.too",
+    "display_name": "City Walker Too",
+    "bio": "เที่ยวในเมือง คาเฟ่ มิวเซียม สตรีทอาร์ต",
+    "tiktok_url": "https://www.tiktok.com/@city.walker.too",
+    "follower_count": 130000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "travel",
+      "city",
+      "cafe",
+      "art"
+    ],
+    "style_tags": [
+      "vlog",
+      "lifestyle",
+      "review"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.91,
+    "thai_hashtag_count": 11,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "cw1",
+        "caption": "เที่ยวสยามใน 1 วัน",
+        "hashtags": [
+          "กรุงเทพ",
+          "คาเฟ่"
+        ],
+        "views": 115000,
+        "likes": 7800,
+        "comments": 450,
+        "shares": 300
+      },
+      {
+        "post_id": "cw2",
+        "caption": "พิพิธภัณฑ์ใหม่ย่านฝั่งธน",
+        "hashtags": [
+          "พิพิธภัณฑ์",
+          "เที่ยวกรุงเทพ"
+        ],
+        "views": 98000,
+        "likes": 6200,
+        "comments": 380,
+        "shares": 240
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "style.minty",
+    "display_name": "Minty Style",
+    "bio": "แฟชั่นไทย ลุคทำงาน สไตล์มินิมอล",
+    "tiktok_url": "https://www.tiktok.com/@style.minty",
+    "follower_count": 280000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "fashion",
+      "style",
+      "outfit"
+    ],
+    "style_tags": [
+      "lifestyle",
+      "lookbook",
+      "review"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.84,
+    "thai_hashtag_count": 8,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "smf1",
+        "caption": "Mix & match ชุดทำงานสไตล์มินิมอล",
+        "hashtags": [
+          "แฟชั่น",
+          "ลุคทำงาน"
+        ],
+        "views": 180000,
+        "likes": 13000,
+        "comments": 800,
+        "shares": 500
+      },
+      {
+        "post_id": "smf2",
+        "caption": "รีวิวกระเป๋าผ้าไทย",
+        "hashtags": [
+          "กระเป๋า",
+          "รีวิว"
+        ],
+        "views": 150000,
+        "likes": 10000,
+        "comments": 600,
+        "shares": 400
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "lookbook.bee",
+    "display_name": "Bee Lookbook",
+    "bio": "Outfit ideas & thrift haul",
+    "tiktok_url": "https://www.tiktok.com/@lookbook.bee",
+    "follower_count": 210000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "fashion",
+      "outfit",
+      "trend"
+    ],
+    "style_tags": [
+      "lookbook",
+      "lifestyle",
+      "ugc"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.55,
+    "thai_hashtag_count": 5,
+    "has_thai_bio": false,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "lb1",
+        "caption": "5 ลุคเที่ยวคาเฟ่",
+        "hashtags": [
+          "outfit",
+          "คาเฟ่"
+        ],
+        "views": 140000,
+        "likes": 9500,
+        "comments": 580,
+        "shares": 350
+      },
+      {
+        "post_id": "lb2",
+        "caption": "Thrift haul กรุงเทพ",
+        "hashtags": [
+          "thrift",
+          "แฟชั่น"
+        ],
+        "views": 120000,
+        "likes": 7800,
+        "comments": 460,
+        "shares": 280
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "menswear.max",
+    "display_name": "Max Menswear",
+    "bio": "แฟชั่นผู้ชาย สไตล์ลำลองและทำงาน",
+    "tiktok_url": "https://www.tiktok.com/@menswear.max",
+    "follower_count": 170000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "fashion",
+      "menswear",
+      "style"
+    ],
+    "style_tags": [
+      "lifestyle",
+      "lookbook",
+      "review"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.89,
+    "thai_hashtag_count": 9,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "mm1",
+        "caption": "Smart casual ผู้ชายไปออฟฟิศ",
+        "hashtags": [
+          "menswear",
+          "ลุคทำงาน"
+        ],
+        "views": 110000,
+        "likes": 7200,
+        "comments": 420,
+        "shares": 280
+      },
+      {
+        "post_id": "mm2",
+        "caption": "รองเท้าผ้าใบคู่โปรด",
+        "hashtags": [
+          "รองเท้า",
+          "review"
+        ],
+        "views": 95000,
+        "likes": 5800,
+        "comments": 350,
+        "shares": 220
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "vintage.nana",
+    "display_name": "Nana Vintage",
+    "bio": "Vintage fashion & sustainable style",
+    "tiktok_url": "https://www.tiktok.com/@vintage.nana",
+    "follower_count": 145000,
+    "location": "Chiang Mai, Thailand",
+    "topic_tags": [
+      "fashion",
+      "vintage",
+      "sustainable"
+    ],
+    "style_tags": [
+      "lifestyle",
+      "lookbook",
+      "ugc"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.7,
+    "thai_hashtag_count": 6,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "vn1",
+        "caption": "สไตล์วินเทจไปเที่ยวตลาดนัด",
+        "hashtags": [
+          "vintage",
+          "ตลาดนัด"
+        ],
+        "views": 98000,
+        "likes": 6500,
+        "comments": 400,
+        "shares": 260
+      },
+      {
+        "post_id": "vn2",
+        "caption": "How to style กระโปรงลายดอก",
+        "hashtags": [
+          "fashion",
+          "styling"
+        ],
+        "views": 85000,
+        "likes": 5200,
+        "comments": 320,
+        "shares": 200
+      }
+    ],
+    "source_type": "synthetic"
+  },
+  {
+    "username": "street.style.ken",
+    "display_name": "Ken Street Style",
+    "bio": "Street style Bangkok แต่งตัวเท่ทุกวัน",
+    "tiktok_url": "https://www.tiktok.com/@street.style.ken",
+    "follower_count": 260000,
+    "location": "Bangkok, Thailand",
+    "topic_tags": [
+      "fashion",
+      "street style",
+      "trend"
+    ],
+    "style_tags": [
+      "lifestyle",
+      "lookbook",
+      "ugc"
+    ],
+    "language_primary": "th",
+    "thai_caption_ratio": 0.87,
+    "thai_hashtag_count": 10,
+    "has_thai_bio": true,
+    "has_thailand_location": true,
+    "recent_posts": [
+      {
+        "post_id": "sk1",
+        "caption": "Street style ย่านสiam",
+        "hashtags": [
+          "streetstyle",
+          "กรุงเทพ"
+        ],
+        "views": 170000,
+        "likes": 12000,
+        "comments": 750,
+        "shares": 480
+      },
+      {
+        "post_id": "sk2",
+        "caption": " layering หน้าหนาวในเมืองร้อน",
+        "hashtags": [
+          "แฟชั่น",
+          "styling"
+        ],
+        "views": 145000,
+        "likes": 9800,
+        "comments": 600,
+        "shares": 380
+      }
+    ],
+    "source_type": "synthetic"
+  }
+]

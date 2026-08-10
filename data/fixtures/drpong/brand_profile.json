@@ -1,0 +1,30 @@
+{
+  "brand_name": "Dr. Pong Clinic",
+  "industry": "Dermatology & Aesthetic Skincare",
+  "description": "A Bangkok-based dermatology clinic offering evidence-based skincare treatments, cosmetic procedures, and a proprietary skincare product line. Combines medical expertise with modern cosmetic technology.",
+  "products": [
+    "Dr. Pong Serum",
+    "UV Protection Range",
+    "Acne Treatment Kit",
+    "Brightening Essence"
+  ],
+  "audience_hypothesis": "Thai consumers aged 20–40 interested in evidence-based skincare, skin health, and dermatology. Predominantly women but inclusive. Urban Bangkok base with online reach nationwide.",
+  "topics": [
+    "dermatology", "skincare", "acne treatment", "anti-aging",
+    "skin brightening", "UV protection", "beauty education", "cosmetic procedures"
+  ],
+  "tone": "Educational, trustworthy, science-backed, approachable",
+  "content_styles": ["educational", "expert", "tutorial", "before-after"],
+  "thai_keywords": [
+    "ดูแลผิว", "สิว", "ผิวขาว", "ครีมกันแดด", "แพทย์ผิวหนัง",
+    "เซรั่ม", "ลดเลือนริ้วรอย", "ผิวสุขภาพดี"
+  ],
+  "english_keywords": [
+    "skincare", "dermatology", "acne", "skin brightening",
+    "UV protection", "serum", "anti-aging", "beauty clinic"
+  ],
+  "campaign_goal": "educational skincare",
+  "desired_style_tags": ["educational", "expert", "tutorial"],
+  "website_url": "https://drpong.co.th",
+  "facebook_url": "https://www.facebook.com/drpongclinic"
+}
