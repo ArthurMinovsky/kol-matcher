@@ -72,6 +72,91 @@ def _keyword_relevance(creator: CreatorProfile, _: list[float]) -> float:
     return float(min(overlap / max(len(skincare_topics), 1) * 100 * 2.5, 100.0))
 
 
+async def compute_relevance_async(
+    creator: CreatorProfile,
+    brand: "BrandProfile",
+) -> tuple[float, float | None, float | None]:
+    """Composite relevance: 25% keyword matching + 20% LLM judge → 0..100.
+
+    Returns (relevance_score, keyword_subscore, llm_subscore).
+
+    The remaining 0% (of the 45% total relevance weight) comes from
+    the existing embedding fallback when available.
+
+    If keyword extraction unavailable, LLM takes full weight.
+    If LLM unavailable, keyword takes full weight.
+    If neither, falls back to legacy keyword heuristic.
+    """
+    from ..services.keyword_extractor import get_keyword_extractor
+    from ..services.llm_judge import judge_relevance, _condense_brand, _condense_creator
+
+    keyword_score = 0.0
+    llm_score = 0.0
+
+    # ── Keyword component ────────────────────────────────────────────────
+    try:
+        extractor = get_keyword_extractor()
+        brand_text = brand.raw_text or ""
+        creator_text = creator.raw_text or ""
+
+        brand_keywords = extractor.extract_keywords(
+            brand_text, max_keywords=settings.keyword_max_count
+        )
+        creator_keywords = extractor.extract_keywords(
+            creator_text, max_keywords=settings.keyword_max_count
+        )
+
+        # Keyword score = 0.5 * semantic_similarity + 0.5 * keyword_overlap
+        semantic_sim = extractor.semantic_similarity(brand_text, creator_text)
+        overlap = extractor.keyword_overlap_score(brand_keywords, creator_keywords)
+        keyword_score = (semantic_sim * 0.5 + overlap * 0.5) * 100.0
+    except Exception:
+        keyword_score = 0.0
+
+    # ── LLM judge component ────────────────────────────────────────────────
+    try:
+        brand_summary = _condense_brand(brand)
+        creator_summary = _condense_creator(creator)
+        judge_result = await judge_relevance(brand_summary, creator_summary)
+        llm_score = float(judge_result.get("score", 50.0))
+    except Exception:
+        llm_score = 0.0
+
+    # ── Combine ──────────────────────────────────────────────────────────
+    kw_weight = settings.relevance_keyword_weight  # 25/45
+    llm_weight = settings.relevance_llm_weight      # 20/45
+
+    if keyword_score > 0 and llm_score > 0:
+        return (
+            keyword_score * kw_weight + llm_score * llm_weight,
+            keyword_score,
+            llm_score,
+        )
+    elif keyword_score > 0:
+        return keyword_score, keyword_score, None
+    elif llm_score > 0:
+        return llm_score, None, llm_score
+    else:
+        # Fallback to legacy embedding or heuristic
+        if creator.embedding and brand.raw_text:
+            emb_score = _embedding_relevance(
+                creator.embedding, [0.0] * len(creator.embedding)
+            )
+            return emb_score, None, None
+        legacy = _keyword_relevance_legacy(creator, brand)
+        return legacy, None, None
+
+
+def _keyword_relevance_legacy(creator: CreatorProfile, brand: "BrandProfile") -> float:
+    """Legacy keyword overlap — used only when all modern methods fail."""
+    brand_topics = {t.lower() for t in brand.topics}
+    creator_topics = {t.lower() for t in creator.topic_tags}
+    overlap = len(brand_topics & creator_topics)
+    if not brand_topics:
+        return 0.0
+    return float(min(overlap / len(brand_topics) * 100.0, 100.0))
+
+
 # ── 2. Engagement Score ────────────────────────────────────────────────────
 
 def compute_engagement(
@@ -287,18 +372,41 @@ def build_scoring_evidence(
     engagement: float,
     thailand_relevance: float,
     style_fit: float,
+    keyword_score: float | None = None,
+    llm_score: float | None = None,
 ) -> list[Evidence]:
     """Build a human-readable evidence list for the recommendation."""
     evidence: list[Evidence] = []
 
     # Relevance
+    relevance_source = "embedding" if creator.embedding else "keyword+llm"
     evidence.append(Evidence(
         signal="Content Relevance",
         value=f"{relevance:.1f}/100",
-        source="embedding" if creator.embedding else "keyword_overlap",
+        source=relevance_source,
         weight=settings.RELEVANCE_WEIGHT * 100,
         available=True,
     ))
+
+    # Keyword Match sub-score (when available)
+    if keyword_score is not None:
+        evidence.append(Evidence(
+            signal="Keyword Match",
+            value=f"{keyword_score:.1f}/100",
+            source="pythainlp_keybert",
+            weight=25.0,
+            available=True,
+        ))
+
+    # LLM Judge sub-score (when available)
+    if llm_score is not None:
+        evidence.append(Evidence(
+            signal="LLM Judge",
+            value=f"{llm_score:.1f}/100",
+            source="llm_rubric",
+            weight=20.0,
+            available=True,
+        ))
 
     # Engagement
     evidence.append(Evidence(

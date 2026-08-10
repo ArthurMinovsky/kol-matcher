@@ -43,6 +43,26 @@ export function BrandProfilePanel({ brand }: { brand: BrandProfile }) {
             ))}
           </div>
         </div>
+        {brand.thai_keywords && brand.thai_keywords.length > 0 && (
+          <div>
+            <span className="tag-label">Thai Keywords</span>
+            <div className="tags">
+              {brand.thai_keywords.map((t) => (
+                <span key={t} className="tag">{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
+        {brand.english_keywords && brand.english_keywords.length > 0 && (
+          <div>
+            <span className="tag-label">English Keywords</span>
+            <div className="tags">
+              {brand.english_keywords.map((t) => (
+                <span key={t} className="tag">{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {brand.audience_hypothesis && (

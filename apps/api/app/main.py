@@ -82,7 +82,7 @@ async def demo_drpong(top_n: int = 15) -> AnalyzeResponse:
     if top_n < 1 or top_n > 40:
         raise HTTPException(status_code=400, detail="top_n must be between 1 and 40")
     try:
-        return run_fixture_pipeline(top_n=top_n)
+        return await run_fixture_pipeline(top_n=top_n)
     except FileNotFoundError as e:
         raise HTTPException(
             status_code=503,

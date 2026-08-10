@@ -33,6 +33,7 @@ from ..services.scorer import (
     compute_match_score,
     compute_recommendation_confidence,
     compute_relevance,
+    compute_relevance_async,
     compute_style_fit,
     compute_thailand_relevance,
 )
@@ -74,7 +75,7 @@ def _build_limitations(creator: CreatorProfile) -> list[str]:
     return limitations
 
 
-def score_and_rank(
+async def score_and_rank(
     creators: list[CreatorProfile],
     brand: BrandProfile,
     brand_embedding: list[float] | None,
@@ -104,16 +105,52 @@ def score_and_rank(
     # Build engagement pool once for pool-relative scaling
     pool_rates = build_engagement_pool(unique) if unique else []
 
-    scored: list[tuple[CreatorProfile, float, float, float, float, float, float]] = []
+    scored: list[
+        tuple[
+            CreatorProfile,
+            float,
+            float,
+            float,
+            float,
+            float,
+            float,
+            float | None,
+            float | None,
+        ]
+    ] = []
     for creator in unique:
         try:
-            relevance = compute_relevance(creator, brand_embedding or [])
+            # Fixture path uses pre-computed embeddings (sync)
+            # General path uses async keyword + LLM relevance
+            if brand_embedding:
+                relevance = compute_relevance(creator, brand_embedding)
+                keyword_score = None
+                llm_score = None
+            else:
+                relevance, keyword_score, llm_score = await compute_relevance_async(
+                    creator, brand
+                )
+
             engagement = compute_engagement(creator, pool_rates)
             thailand = compute_thailand_relevance(creator)
             style_fit = compute_style_fit(creator, brand.desired_style_tags)
-            match_score = compute_match_score(relevance, engagement, thailand, style_fit)
+            match_score = compute_match_score(
+                relevance, engagement, thailand, style_fit
+            )
             coverage, coverage_breakdown = compute_evidence_coverage(creator)
-            scored.append((creator, match_score, relevance, engagement, thailand, style_fit, coverage))
+            scored.append(
+                (
+                    creator,
+                    match_score,
+                    relevance,
+                    engagement,
+                    thailand,
+                    style_fit,
+                    coverage,
+                    keyword_score,
+                    llm_score,
+                )
+            )
         except Exception:
             # Malformed creator: fail safe, skip
             continue
@@ -129,11 +166,27 @@ def score_and_rank(
     )
 
     recommendations: list[Recommendation] = []
-    for rank, (creator, match_score, relevance, engagement, thailand, style_fit, coverage) in enumerate(
-        scored[:top_n], start=1
-    ):
+    for rank, (
+        creator,
+        match_score,
+        relevance,
+        engagement,
+        thailand,
+        style_fit,
+        coverage,
+        keyword_score,
+        llm_score,
+    ) in enumerate(scored[:top_n], start=1):
         confidence = compute_recommendation_confidence(coverage, match_score)
-        scoring_evidence = build_scoring_evidence(creator, relevance, engagement, thailand, style_fit)
+        scoring_evidence = build_scoring_evidence(
+            creator,
+            relevance,
+            engagement,
+            thailand,
+            style_fit,
+            keyword_score=keyword_score,
+            llm_score=llm_score,
+        )
 
         rec = Recommendation(
             rank=rank,
@@ -145,9 +198,11 @@ def score_and_rank(
             style_fit=round(style_fit, 2),
             evidence_coverage=round(coverage, 2),
             evidence_breakdown=coverage_breakdown,
-            audience_verification="Unavailable",  # Audience demographics not observable
+            audience_verification="Unavailable",
             recommendation_confidence=confidence,
-            explanation=_build_explanation(creator, brand, relevance, engagement, thailand, style_fit),
+            explanation=_build_explanation(
+                creator, brand, relevance, engagement, thailand, style_fit
+            ),
             limitations=_build_limitations(creator),
             scoring_evidence=scoring_evidence,
         )
@@ -156,7 +211,7 @@ def score_and_rank(
     return recommendations
 
 
-def run_fixture_pipeline(top_n: int = _DEFAULT_TOP_N) -> AnalyzeResponse:
+async def run_fixture_pipeline(top_n: int = _DEFAULT_TOP_N) -> AnalyzeResponse:
     """Run the complete Dr. Pong fixture demo pipeline.
 
     Steps:
@@ -177,7 +232,7 @@ def run_fixture_pipeline(top_n: int = _DEFAULT_TOP_N) -> AnalyzeResponse:
     embeddings_data = load_drpong_embeddings()
     brand_embedding: list[float] | None = embeddings_data.get("brand_embedding")
 
-    recommendations = score_and_rank(
+    recommendations = await score_and_rank(
         creators=creators,
         brand=brand,
         brand_embedding=brand_embedding,

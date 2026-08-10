@@ -53,6 +53,9 @@ class CreatorProfile(BaseModel):
     # Recent posts (used for engagement scoring)
     recent_posts: list[CreatorPost] = []
 
+    # Raw combined text from bio + post captions for keyword extraction
+    raw_text: str | None = None
+
     # Embedding vector (pre-computed for fixtures)
     embedding: list[float] | None = None
 

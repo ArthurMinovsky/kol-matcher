@@ -1,6 +1,7 @@
 """Pytest wrapper for fixture evaluation."""
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import sys
 from pathlib import Path
@@ -16,7 +17,10 @@ _spec.loader.exec_module(_evaluate)
 run_evaluation = _evaluate.run_evaluation
 
 
-def test_drpong_evaluation_thresholds():
-    metrics = run_evaluation()
+import pytest
+
+@pytest.mark.asyncio
+async def test_drpong_evaluation_thresholds():
+    metrics = await run_evaluation()
     assert metrics["pairwise_accuracy"] >= 0.90
     assert metrics["precision_at_5"] >= 0.80

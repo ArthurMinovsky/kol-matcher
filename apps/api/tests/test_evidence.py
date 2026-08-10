@@ -55,7 +55,10 @@ def test_confidence_rules():
     assert compute_recommendation_confidence(20.0, 30.0) == "LOW"
 
 
-def test_removing_bio_does_not_change_match_score():
+import pytest
+
+@pytest.mark.asyncio
+async def test_removing_bio_does_not_change_match_score():
     from app.models.brand import BrandProfile
 
     brand = BrandProfile(brand_name="Dr. Pong", desired_style_tags=["educational", "expert", "tutorial"])
@@ -72,8 +75,8 @@ def test_removing_bio_does_not_change_match_score():
     )
     no_bio = full.model_copy(update={"bio": None})
 
-    full_recs = score_and_rank([full], brand, None, top_n=1)
-    no_bio_recs = score_and_rank([no_bio], brand, None, top_n=1)
+    full_recs = await score_and_rank([full], brand, None, top_n=1)
+    no_bio_recs = await score_and_rank([no_bio], brand, None, top_n=1)
 
     assert full_recs[0].match_score == no_bio_recs[0].match_score
     assert full_recs[0].evidence_coverage > no_bio_recs[0].evidence_coverage

@@ -45,3 +45,28 @@ Do not invent metrics or demographics. audience_hypothesis must be phrased as a 
 
 JSON:
 """
+
+
+def llm_judge_prompt(brand_summary: str, creator_summary: str) -> str:
+    """Prompt for LLM-as-judge relevance scoring."""
+    return f"""You are an expert KOL marketing analyst.
+
+Score how relevant this TikTok creator is for the brand's campaign.
+
+## BRAND
+{brand_summary}
+
+## CREATOR
+{creator_summary}
+
+## RUBRIC
+90-100: PERFECT MATCH — Direct alignment
+70-89: STRONG MATCH — Significant overlap
+50-69: MODERATE MATCH — Some overlap
+30-49: WEAK MATCH — Minimal connection
+0-29: POOR MATCH — No connection
+
+Return ONLY JSON: {{"score": <0-100>, "reasoning": "<one sentence>"}}
+
+JSON:
+"""

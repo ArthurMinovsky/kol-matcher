@@ -7,6 +7,14 @@ export function ScoreBreakdown({ rec }: { rec: Recommendation }) {
     { label: 'Thailand', value: rec.thailand_relevance, weight: 15 },
     { label: 'Style Fit', value: rec.style_fit, weight: 15 },
   ]
+
+  const keywordEvidence = rec.scoring_evidence?.find(
+    (e) => e.signal === 'Keyword Match'
+  )
+  const llmEvidence = rec.scoring_evidence?.find(
+    (e) => e.signal === 'LLM Judge'
+  )
+
   return (
     <div className="score-breakdown">
       {bars.map((b) => (
@@ -20,6 +28,34 @@ export function ScoreBreakdown({ rec }: { rec: Recommendation }) {
           <span>{b.value.toFixed(0)}</span>
         </div>
       ))}
+      {keywordEvidence && (
+        <div className="score-row sub-score">
+          <span>
+            └ Keyword Match <small>(25%)</small>
+          </span>
+          <div className="bar">
+            <div
+              className="bar-fill secondary"
+              style={{ width: `${parseFloat(keywordEvidence.value)}%` }}
+            />
+          </div>
+          <span>{parseFloat(keywordEvidence.value).toFixed(0)}</span>
+        </div>
+      )}
+      {llmEvidence && (
+        <div className="score-row sub-score">
+          <span>
+            └ LLM Judge <small>(20%)</small>
+          </span>
+          <div className="bar">
+            <div
+              className="bar-fill secondary"
+              style={{ width: `${parseFloat(llmEvidence.value)}%` }}
+            />
+          </div>
+          <span>{parseFloat(llmEvidence.value).toFixed(0)}</span>
+        </div>
+      )}
     </div>
   )
 }

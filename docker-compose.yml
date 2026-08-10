@@ -15,6 +15,7 @@ services:
       APIFY_TIKTOK_ACTOR: ${APIFY_TIKTOK_ACTOR:-clockworks/free-tiktok-scraper}
     volumes:
       - ./data:/app/data:ro
+      - model_cache:/app/models
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 5s
@@ -35,3 +36,6 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+volumes:
+  model_cache:

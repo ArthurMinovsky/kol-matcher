@@ -9,7 +9,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+    model_config = SettingsConfigDict(
+        env_file=".env", case_sensitive=False, extra="ignore"
+    )
 
     app_env: str = "development"
     cors_origins: str = "http://localhost:3000"
@@ -60,6 +62,24 @@ class Settings(BaseSettings):
     #   similarity=0.80 → ~86, similarity=0.50 → ~50, similarity=0.20 → ~14
     RELEVANCE_SIM_SCALE: float = 120.0
     RELEVANCE_SIM_OFFSET: float = -10.0
+
+    # ── Facebook scraping (Apify cloud actor) ─────────────────────────────
+    apify_facebook_actor: str = "apify/facebook-pages-scraper"
+    apify_facebook_timeout_seconds: int = 120
+
+    # ── Thai NLP / semantic similarity ─────────────────────────────────────
+    sentence_transformer_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
+    keyword_max_count: int = 15
+
+    # ── LLM-as-judge ──────────────────────────────────────────────────────
+    llm_judge_batch_size: int = 5
+    llm_judge_max_tokens: int = 1024
+
+    # ── Relevance component weights (within the 45% relevance bucket) ─────
+    # relevance_total = keyword_weight * keyword_score + llm_weight * llm_score
+    # These must sum to 1.0 (they're relative weights within relevance)
+    relevance_keyword_weight: float = 0.5556  # = 25/45
+    relevance_llm_weight: float = 0.4444      # = 20/45
 
     @property
     def llm_api_key(self) -> str:

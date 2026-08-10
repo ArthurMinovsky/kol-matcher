@@ -2070,3 +2070,359 @@ git commit -m "feat: generalized KOL matcher with brand+FB input, Apify live pro
 - **Spec coverage:** O1 (input contract) → Tasks 2, 12; O2 (Dr. Pong) → Tasks 2, 12; O3 (heuristic) → Tasks 4, 5; O4 (LLM) → Tasks 3, 6, 7; O5 (Apify) → Tasks 8, 9, 12; O6 (ranking) → Tasks 10, 11; O7 (trust) → unchanged scorer + Task 14; O8 (frontend) → Tasks 16-19; O9 (Docker) → Tasks 1, 21; O10 (evaluation) → Task 15; O11 (docs) → Task 20.
 - **Placeholder scan:** no "TBD"/"TODO"; fixture JSON structure is explicit; code blocks contain real implementations.
 - **Type consistency:** `AnalyzeRequest` fields match `api.ts` payload; `BrandProfile.extraction_method` used across backend and UI badge.
+
+---
+
+# Phase 2: Prototype Evolution — Real Crawling, Thai NLP, and LLM-as-Judge
+
+**Goal:** Transform the mockup into a real prototype. Replace synthetic brand profiles with live Facebook/website crawling. Replace the static keyword-relevance heuristic with pythainlp KeyBERT keyword extraction (25%) and LLM-as-judge semantic relevance scoring (20%). The Dr. Pong fixture path remains completely unchanged.
+
+**Current behavior:** Facebook scraping always returns `FAILED`. Website scraping returns `FAILED`. Relevance for general brands uses a hardcoded skincare keyword list, so Parameter gelato returns dermatology creators. Source status is always fake.
+
+**Desired behavior:** Real text extraction from Facebook pages (via Apify cloud actor) and websites (via trafilatura/readability). Thai-language keyword extraction from both brand and creator text. Semantic relevance via sentence-transformers cosine similarity + LLM rubric scoring. Parameter gelato should return food/dessert/gelato creators.
+
+---
+
+## Phase 2 File Map
+
+| File | Responsibility |
+|------|----------------|
+| `apps/api/app/config.py` | New: `apify_facebook_actor`, `sentence_transformer_model`, `keyword_max_count`, `llm_judge_batch_size`, `relevance_keyword_weight`, `relevance_llm_weight` |
+| `apps/api/app/models/brand.py` | Add `raw_text: str \| None` field |
+| `apps/api/app/models/creator.py` | Add `raw_text: str \| None` field |
+| `apps/api/app/crawlers/__init__.py` | Package init |
+| `apps/api/app/crawlers/facebook_crawler.py` | Apify Facebook Pages scraper adapter |
+| `apps/api/app/crawlers/website_crawler.py` | trafilatura + BeautifulSoup text extraction |
+| `apps/api/app/services/keyword_extractor.py` | pythainlp KeyBERT + sentence-transformers similarity |
+| `apps/api/app/services/llm_judge.py` | LLM-as-judge relevance scoring with caching |
+| `apps/api/app/services/scorer.py` | Split relevance into keyword (25%) + LLM (20%) components |
+| `apps/api/app/services/brand_extractor.py` | New flow: crawl → extract text → keywords → LLM/heuristic |
+| `apps/api/app/services/pipeline.py` | Updated orchestration with real crawling status |
+| `apps/api/app/safety/prompting.py` | Add LLM judge prompt template |
+| `apps/api/app/providers/apify.py` | Enhance TikTok search with multiple keyword queries |
+| `apps/api/pyproject.toml` | Add `pythainlp`, `sentence-transformers`, `trafilatura`, `beautifulsoup4`, `lxml` |
+| `docker-compose.yml` | Add model cache volume mount |
+| `apps/api/tests/test_crawlers.py` | Mocked Apify + trafilatura tests |
+| `apps/api/tests/test_keyword_extractor.py` | Mocked KeyBERT + similarity tests |
+| `apps/api/tests/test_llm_judge.py` | Mocked judge + caching tests |
+| `tests/evaluation/test_parameter.py` | End-to-end: Parameter returns food creators |
+| `apps/web/components/score-breakdown.tsx` | Show keyword match + LLM judge sub-scores |
+| `apps/web/components/brand-profile.tsx` | Show extracted keywords list |
+
+---
+
+## Phase 2 Task 1: Dependencies & Configuration
+
+**Files:**
+- Modify: `apps/api/pyproject.toml`
+- Modify: `apps/api/app/config.py`
+- Modify: `docker-compose.yml`
+
+- [ ] **Step 1: Add Python dependencies**
+
+Add to `pyproject.toml` `[project.dependencies]`:
+
+```toml
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.29.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.3.0",
+    "numpy>=1.26.0",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27.0",
+    "pythainlp>=5.0",
+    "sentence-transformers>=3.0",
+    "trafilatura>=2.0",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+]
+```
+
+- [ ] **Step 2: Add config settings**
+
+Append to `Settings` in `config.py`:
+
+```python
+    # ── Facebook scraping (Apify cloud actor) ─────────────────────────────
+    apify_facebook_actor: str = "apify/facebook-pages-scraper"
+    apify_facebook_timeout_seconds: int = 120
+
+    # ── Thai NLP / semantic similarity ─────────────────────────────────────
+    sentence_transformer_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
+    keyword_max_count: int = 15
+
+    # ── LLM-as-judge ──────────────────────────────────────────────────────
+    llm_judge_batch_size: int = 5
+    llm_judge_max_tokens: int = 1024
+
+    # ── Relevance component weights (within the 45% relevance bucket) ─────
+    # relevance_total = keyword_weight * keyword_score + llm_weight * llm_score
+    # These must sum to 1.0 (they're relative weights within relevance)
+    relevance_keyword_weight: float = 0.5556  # = 25/45
+    relevance_llm_weight: float = 0.4444      # = 20/45
+```
+
+- [ ] **Step 3: Add model cache volume**
+
+Add to `docker-compose.yml` `api` service:
+
+```yaml
+    volumes:
+      - ./data:/app/data:ro
+      - model_cache:/app/models  # persistent sentence-transformers + pythainlp cache
+```
+
+Add at bottom:
+
+```yaml
+volumes:
+  model_cache:
+```
+
+---
+
+## Phase 2 Task 2: Crawling Engine — Facebook
+
+**Files:**
+- Create: `apps/api/app/crawlers/__init__.py`
+- Create: `apps/api/app/crawlers/facebook_crawler.py`
+
+- [ ] **Step 1: Apify Facebook Pages scraper**
+
+Uses `apify/facebook-pages-scraper` cloud actor (handles anti-bot without local Playwright).
+Returns: `{page_name, about_text, category, recent_posts_text, follower_count}`.
+
+---
+
+## Phase 2 Task 3: Crawling Engine — Website
+
+**Files:**
+- Create: `apps/api/app/crawlers/website_crawler.py`
+
+- [ ] **Step 1: Website text extraction**
+
+Primary: `trafilatura.extract()` for article text from HTML.
+Fallback: `requests` + `BeautifulSoup` for simple static pages.
+Returns: `{title, description, body_text}`.
+
+---
+
+## Phase 2 Task 4: Thai NLP Keyword Extractor
+
+**Files:**
+- Create: `apps/api/app/services/keyword_extractor.py`
+
+- [ ] **Step 1: pythainlp KeyBERT + sentence-transformers**
+
+Singleton `ThaiKeywordExtractor` class:
+- `extract_keywords(text, max=15) -> list[tuple[str, float]]` — pythainlp KeyBERT with `newmm` tokenizer
+- `semantic_similarity(text_a, text_b) -> float` — sentence-transformers cosine similarity [0, 1]
+- `keyword_overlap_score(brand_kw, creator_kw) -> float` — set overlap ratio [0, 1]
+
+---
+
+## Phase 2 Task 5: LLM-as-Judge
+
+**Files:**
+- Create: `apps/api/app/services/llm_judge.py`
+- Modify: `apps/api/app/safety/prompting.py`
+
+- [ ] **Step 1: LLM judge service**
+
+`judge_relevance(brand_summary, creator_summary) -> dict`:
+- Structured rubric prompt asking LLM to score 0-100 with reasoning
+- Input summaries are condensed (brand name, industry, topics, products, campaign goal) + (creator username, bio, topic_tags, style_tags, recent post topics)
+- Caching: MD5 hash keyed cache to avoid repeated LLM calls
+- Batch mode: Score up to 5 creators in a single prompt
+- Fallback: Returns 50.0 (neutral) if LLM unavailable
+
+- [ ] **Step 2: Add judge prompt to prompting.py**
+
+Few-shot examples showing HIGH (90+), MEDIUM (50-70), LOW (<30) scores.
+Explicit instruction: "Score based on whether this creator's content would genuinely help this brand's campaign goal."
+
+---
+
+## Phase 2 Task 6: Updated Relevance Scorer
+
+**Files:**
+- Modify: `apps/api/app/services/scorer.py`
+
+- [ ] **Step 1: Split relevance into keyword + LLM components**
+
+New `compute_relevance(creator, brand) -> float`:
+- `keyword_score` (0..100): `0.5 * semantic_similarity(brand_text, creator_text) * 100 + 0.5 * keyword_overlap_ratio * 100`
+- `llm_score` (0..100): `judge_relevance()` with condensed summaries
+- Combined: `keyword_score * 25/45 + llm_score * 20/45` when both available
+- If only keywords: `keyword_score`
+- If only LLM: `llm_score`
+- If neither: fallback to legacy `_keyword_relevance_legacy()`
+
+Update `_build_evidence()` in `ranker.py` to show both sub-scores in evidence list.
+
+---
+
+## Phase 2 Task 7: Updated Brand Extraction
+
+**Files:**
+- Modify: `apps/api/app/services/brand_extractor.py`
+
+- [ ] **Step 1: New extraction flow with real crawling**
+
+New flow:
+1. Scrape Facebook page → get `about_text`, `recent_posts_text`
+2. Scrape website → get `body_text`
+3. Combine into `BrandProfile.raw_text`
+4. Extract keywords from raw_text using `ThaiKeywordExtractor`
+5. If LLM key available: send `raw_text` + brand name to LLM for structured extraction
+6. If no LLM: use heuristic from keywords + brand name
+7. Inject extracted keywords into heuristic profile (override generic lifestyle keywords)
+
+Update `SourceStatusMap`:
+- `facebook: LIVE` if crawler succeeded, `FAILED` otherwise
+- `website: LIVE` if crawler succeeded, `FAILED` otherwise
+
+---
+
+## Phase 2 Task 8: Updated Pipeline Orchestration
+
+**Files:**
+- Modify: `apps/api/app/services/pipeline.py`
+
+- [ ] **Step 1: Updated flow with real source status**
+
+New flow for general brands:
+1. `brand = await extract_brand_profile(...)` (now with real crawling)
+2. Determine source status from `brand.raw_text` presence
+3. `creators = await discover_tiktok_creators(brand.keywords)` (Apify search)
+4. For each creator: build `raw_text` from bio + post captions
+5. `recommendations = await score_and_rank(creators, brand)` (now async due to LLM judge)
+6. Update limitations text to reflect real data sources
+
+Note: `score_and_rank` must become `async` because `compute_relevance` now calls LLM. Update `ranker.py` accordingly.
+
+---
+
+## Phase 2 Task 9: Frontend Updates
+
+**Files:**
+- Modify: `apps/web/components/score-breakdown.tsx`
+- Modify: `apps/web/components/brand-profile.tsx`
+
+- [ ] **Step 1: Show relevance sub-scores**
+
+When available, show:
+- "Keyword Match (25%)" with score bar
+- "LLM Judge (20%)" with score bar
+
+- [ ] **Step 2: Show extracted keywords**
+
+Display `thai_keywords` and `english_keywords` lists in brand profile panel.
+
+---
+
+## Phase 2 Task 10: Tests
+
+**Files:**
+- Create: `apps/api/tests/test_crawlers.py`
+- Create: `apps/api/tests/test_keyword_extractor.py`
+- Create: `apps/api/tests/test_llm_judge.py`
+- Create: `tests/evaluation/test_parameter.py`
+
+- [ ] **Step 1: test_crawlers.py**
+
+Mocked Apify responses and trafilatura/requests fallbacks.
+
+- [ ] **Step 2: test_keyword_extractor.py**
+
+Mocked pythainlp KeyBERT and sentence-transformers. Test Thai text tokenization.
+
+- [ ] **Step 3: test_llm_judge.py**
+
+Mocked LLM responses. Test caching behavior (same input → no second LLM call).
+
+- [ ] **Step 4: test_parameter.py**
+
+End-to-end integration test:
+- Input: Parameter brand + https://www.facebook.com/parameterthailand/
+- Assert: Top 10 includes at least 3 food/dessert/gelato-related creators
+- Assert: No dermatology/skincare creators in top 5
+
+---
+
+## Phase 2 Task 11: Final Verification
+
+- [ ] **Step 1: Run all backend tests**
+
+```bash
+cd apps/api
+pytest tests -v
+```
+
+Expected: all 41 original tests pass + new tests pass.
+
+- [ ] **Step 2: Run Dr. Pong evaluation**
+
+```bash
+python -m tests.evaluation.evaluate
+```
+
+Expected: Pairwise ≥ 90%, P@5 ≥ 80% (unchanged).
+
+- [ ] **Step 3: Run Parameter integration test**
+
+```bash
+pytest tests/evaluation/test_parameter.py -v
+```
+
+Expected: Top creators are food-related, not dermatology.
+
+- [ ] **Step 4: Docker build + run**
+
+```bash
+docker compose down
+docker compose build --no-cache
+docker compose up
+```
+
+Expected: Containers start, healthcheck passes, model cache volume persists.
+
+- [ ] **Step 5: Browser verification**
+
+Open http://localhost:3000, enter Parameter brand, verify:
+- Brand Intelligence shows real extracted keywords (not "lifestyle")
+- Source status shows `facebook: LIVE` or `PARTIAL`
+- Top recommendations include food/gelato creators
+- Score breakdown shows Keyword Match + LLM Judge sub-scores
+
+- [ ] **Step 6: Final atomic commit**
+
+```bash
+git add -A
+git status
+git commit -m "feat: real crawling + Thai NLP keyword extraction + LLM-as-judge relevance
+
+- Apify Facebook page scraper (cloud actor)
+- trafilatura + BeautifulSoup website text extraction
+- pythainlp KeyBERT Thai keyword extraction
+- sentence-transformers semantic similarity
+- LLM-as-judge relevance scoring with caching
+- Updated 45% relevance: 25% keyword + 20% LLM
+- Parameter brand returns food creators (not dermatology)
+- Dr. Pong fixture path unchanged"
+```
+
+---
+
+## Phase 2 Assumptions
+
+- **Apify Facebook scraper** (`apify/facebook-pages-scraper`) is available and can access public Facebook pages without login. This is a cloud Apify actor, not local Playwright.
+- **Apify TikTok scraper** (`clockworks/free-tiktok-scraper`) remains functional for keyword search.
+- **pythainlp KeyBERT** model (`wangchanberta-base-att-spm-uncased`) downloads successfully on first run (~400MB). Cached in Docker volume.
+- **sentence-transformers** model (`paraphrase-multilingual-MiniLM-L12-v2`) downloads on first run (~400MB). Cached in Docker volume.
+- **LLM provider** (Typhoon or Gemini) is available for LLM-as-judge calls. If unavailable, system gracefully falls back to keyword-only relevance.
+- **Facebook page** https://www.facebook.com/parameterthailand/ is public and accessible. If private or geo-blocked, crawler returns `FAILED` and falls back to heuristic.
+- **Website** (if provided) is static or lightly dynamic. Heavy SPA sites may return `FAILED` for trafilatura.
+- **Docker image size increase** is acceptable: ~800MB additional for ML models (cached on volume, not in image).
+- **Async scoring**: `score_and_rank` and `compute_relevance` become async. All callers must be updated to `await`.

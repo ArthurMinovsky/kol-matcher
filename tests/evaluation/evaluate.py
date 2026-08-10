@@ -1,6 +1,7 @@
 """Evaluation runner for Dr. Pong fixture."""
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
 from itertools import combinations
@@ -20,7 +21,7 @@ from app.providers.fixture_loader import (
 from app.services.ranker import score_and_rank
 
 
-def run_evaluation(top_n: int = 15):
+async def run_evaluation(top_n: int = 15):
     creators = load_drpong_creators()
     # Inject committed embeddings so relevance uses cosine similarity,
     # not the keyword-overlap fallback.
@@ -31,7 +32,7 @@ def run_evaluation(top_n: int = 15):
     brand = BrandProfile.model_validate(
         json.load(open(fixture_dir / "brand_profile.json"))
     )
-    recs = score_and_rank(creators, brand, brand_embedding, top_n=40)
+    recs = await score_and_rank(creators, brand, brand_embedding, top_n=40)
     ranked = [r.creator for r in recs]
     labels = {c.username: c.relevance_label for c in creators if c.relevance_label is not None}
 
@@ -57,4 +58,4 @@ def run_evaluation(top_n: int = 15):
 
 
 if __name__ == "__main__":
-    run_evaluation()
+    asyncio.run(run_evaluation())

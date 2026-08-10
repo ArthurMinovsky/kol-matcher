@@ -28,4 +28,7 @@ class BrandProfile(BaseModel):
     # Desired style tags derived from campaign_goal (used for Style Fit scoring)
     desired_style_tags: list[str] = []
 
+    # Raw combined text from Facebook + website for keyword extraction
+    raw_text: str | None = None
+
     extraction_method: Literal["fixture", "llm", "heuristic"] = "fixture"
