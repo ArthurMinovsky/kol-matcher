@@ -25,7 +25,17 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+_DEFAULT_CORS_ORIGINS = {
+    "http://localhost:3000",
+    "https://kol-matcher.vercel.app",
+    "https://web-beta-six-97.vercel.app",
+}
+_configured_cors_origins = {
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", "").split(",")
+    if origin.strip()
+}
+CORS_ORIGINS = sorted(_DEFAULT_CORS_ORIGINS | _configured_cors_origins)
 
 app.add_middleware(
     CORSMiddleware,
