@@ -240,6 +240,29 @@ All synthetic data is explicitly labelled `source_type: synthetic` or
 - Audience demographics are never assumed; verification is always
   `Unavailable`.
 
+## Future Development
+
+The following roadmap items are intentionally not part of the current
+deterministic demo:
+
+1. **Persistent data with SQLite.** Add a SQLite-backed data layer for brands,
+   creators, campaigns, crawl runs, and matching history. This will make the
+   project easier to scale beyond committed fixtures while keeping local
+   development simple.
+2. **Hybrid semantic retrieval.** Add Qdrant and the BGE-M3-RS embedding model
+   for retrieval-augmented generation (RAG) and semantic creator search. BM25
+   will remain available alongside vector retrieval so exact keywords and
+   semantic similarity can complement each other.
+3. **Structured crawler and ETL pipeline.** Replace ad-hoc collection paths
+   with a custom crawler that has explicit extract, transform, and load stages,
+   provenance, validation, scheduling, and repeatable crawl-run records.
+4. **Private self-hosted model inference.** Replace third-party extraction API
+   calls with a hosted Gemma 4 27B 3A model where appropriate, keeping brand
+   and creator data inside the project-controlled inference environment.
+5. **Configurable customer and KOL personas.** Add chat-configurable customer
+   and creator personas, then include their goals, preferences, tone, and
+   constraints in matching so recommendations can be tailored more directly.
+
 ## Ethical constraints
 
 - Synthetic/cached data is always labelled; missing metrics remain `None`.
