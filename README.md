@@ -19,7 +19,8 @@ Then open:
 - Web UI: http://localhost:3000
 - FastAPI docs: http://localhost:8000/docs
 
-Click **Load Dr. Pong Demo**.
+Click **Try Dr. Pong test case →** to fill the committed Dr. Pong inputs, then
+submit the general analysis form.
 
 To stop: `docker compose down`
 
@@ -31,9 +32,12 @@ healthcheck before starting.
 1. Structured brand intelligence from brand name + Facebook page URL.
 2. Deterministic four-factor creator ranking.
 3. Explicit evidence provenance and confidence.
-4. Reproducible fixture-based operation without external services.
-5. Optional live TikTok creator data via **Apify** when configured.
-6. A polished evaluator-facing Next.js interface.
+4. Reproducible BM25 matching over committed fixtures without model downloads.
+5. Optional live TikTok creator data through the official Research API or an
+   explicitly enabled browser provider.
+6. Hybrid BM25 + LLM relevance with grounded brand and creator rationales.
+7. A versioned `/api/matching/score` contract for algorithm experiments.
+8. A polished evaluator-facing Next.js interface.
 
 ## Input contract
 
@@ -43,25 +47,20 @@ healthcheck before starting.
 {
   "brand_name": "Dr. Pong Clinic",
   "facebook_url": "https://www.facebook.com/drpongclinic",
-  "campaign_goal": "educational skincare",
+  "campaign_goal": "product review",
   "website_url": "https://drpong.co.th"
 }
 ```
 
 - `brand_name` and `facebook_url` are required.
 - `campaign_goal` is required and drives the **Style Fit** component.
-- `website_url` is optional context for the LLM path.
+- `website_url` is optional context for brand-profile extraction.
 
 ## Architecture
 
 ```text
 Brand name + FB URL (+ website)
         │
-        ▼
-┌─────────────────┐     ┌──────────────────┐
-│ Dr. Pong match? │──YES──▶ Fixture pipeline │
-└─────────────────┘     └──────────────────┘
-        │ NO
         ▼
 ┌──────────────────┐
 │ LLM available?   │──YES──▶ Typhoon → Gemini structured extraction
@@ -74,19 +73,30 @@ Brand name + FB URL (+ website)
 └──────────────────┘
         │
         ▼
-┌──────────────────┐     ┌─────────────────┐
-│ Apify available? │──YES──▶ Live TikTok   │
-└──────────────────┘     │ creator search  │
-        │ NO             └─────────────────┘
+┌──────────────────────────┐     ┌─────────────────┐
+│ Official API available?  │──YES──▶ Live TikTok   │
+└──────────────────────────┘     │ creator search  │
+        │ NO                     └─────────────────┘
         ▼
-┌──────────────────┐
-│ Synthetic demo   │
-│ pool (20 creators)
-└──────────────────┘
+┌──────────────────────────┐     ┌─────────────────┐
+│ Browser explicitly       │──YES──▶ Live TikTok   │
+│ enabled?                 │        browser search │
+└──────────────────────────┘     └─────────────────┘
+        │ NO
+        ▼
+┌──────────────────────────┐
+│ Synthetic demo pool      │
+│ (20 creators, labelled)  │
+└──────────────────────────┘
         │
         ▼
-Deterministic scoring → ranking → evidence → API → Next.js
+LEKCut → BM25 corpus matching → hybrid scoring → rationales → API → Next.js
 ```
+
+The same deterministic matcher is exposed as `POST /api/matching/score` for
+repeatable experiments. It accepts a validated `BrandProfile`, creator list,
+and `algorithm_key` (`bm25_v2_lekcut`) and returns ordered raw/normalized scores
+with observed matched terms. This endpoint remains deterministic and BM25-only.
 
 ## Deterministic ranking formula
 
@@ -106,9 +116,13 @@ match_score DESC → relevance DESC → evidence_coverage DESC → username ASC
 
 ### Component details
 
-- **Relevance**: cosine similarity between brand and creator embeddings for the
-  Dr. Pong fixture; keyword-overlap fallback for general brands without
-  embeddings.
+- **Relevance**: a 45% composite of BM25 (20%) and an optional LLM judge (25%).
+  The BM25 portion uses corpus-level `rank_bm25.BM25Okapi` over each creator's
+  bio, captions, hashtags, topics, and raw text. The brand query combines
+  structured Thai/English terms, products, campaign goal, and crawled text.
+  Thai text is segmented with LEKCut's default DeepCut ONNX model; KeyBERT,
+  embeddings, and sentence-transformer models are not used. Without LLM
+  credentials, the judge is unavailable and contributes a neutral score of 50.
 - **Engagement**: median per-post rate of
   `(likes + 2×comments + 3×shares) / max(views, 1)`, clipped and pool-relative
   normalized.
@@ -132,20 +146,44 @@ match_score DESC → relevance DESC → evidence_coverage DESC → username ASC
 |----------|---------|---------|
 | Typhoon (LLM) | `TYPHOON_API_KEY` | Structured brand profile extraction |
 | Gemini (LLM) | `GEMINI_API_KEY` | Fallback LLM extraction |
-| Apify (TikTok) | `APIFY_API_TOKEN` | Live TikTok creator discovery |
+| TikTok Research API | `TIKTOK_RESEARCH_API_TOKEN` | Authorized live creator discovery |
+| TikTok browser | `TIKTOK_BROWSER_ENABLED`, optional `TIKTOK_BROWSER_CDP_URL` | Explicit opt-in public-page fallback |
+| Langflow lab | `LANGFLOW_SUPERUSER_PASSWORD` | Optional local algorithm orchestration |
 
 If no LLM key is provided, the system falls back to an industry-keyword
 heuristic profile labelled as low-confidence.
-If no Apify token is provided, the system ranks a committed mixed-industry
-synthetic demo pool (20 creators) labelled as synthetic.
+If no TikTok provider returns usable data, the system ranks a committed
+mixed-industry demo pool labelled as synthetic. Browser collection is disabled
+by default and does not use stealth patches, CAPTCHA solving, proxy rotation,
+or other anti-bot bypasses.
+
+### Optional Langflow matching laboratory
+
+Langflow is not part of the default application path. Set
+`LANGFLOW_SUPERUSER_PASSWORD` in `.env` (the default local username is
+`langflow`), then run:
+
+```bash
+docker compose --profile matching-lab up --build
+```
+
+Open http://localhost:7860 and import
+`langflow/flows/kol-bm25-evaluator.json`. The custom component calls the API's
+`/api/matching/score` endpoint instead of reimplementing BM25. The component and
+flow follow Langflow 1.11.x's documented custom-component and API patterns:
+
+- https://docs.langflow.org/components-custom-components
+- https://docs.langflow.org/api-reference-api-examples
+- https://docs.langflow.org/deployment-docker
 
 ## Evaluation
 
-The Dr. Pong fixture is evaluated with pairwise relevant-vs-irrelevant ordering
+The Dr. Pong, Parameter, and Traveloka cases are evaluated with deterministic
+BM25 ranking. The benchmark uses pairwise relevant-vs-irrelevant ordering
 accuracy and Precision@5:
 
 ```bash
-python -m tests.evaluation.evaluate
+PYTHONPATH=apps/api apps/api/.venv/bin/python tests/evaluation/evaluate.py
 ```
 
 P0 thresholds:
@@ -185,8 +223,7 @@ npm run dev
 ## Fixture provenance
 
 - `data/fixtures/drpong/` — 40 synthetic creators + brand profile for
-  Dr. Pong Clinic. Pre-computed 16-dimensional embeddings are committed so the
-  demo requires no OpenAI/Typhoon/Gemini embedding calls.
+  Dr. Pong Clinic. The demo requires no model download or embedding service.
 - `data/fixtures/demo_pool/` — 20 mixed-industry synthetic creators used as a
   fallback for general brands.
 
@@ -195,10 +232,11 @@ All synthetic data is explicitly labelled `source_type: synthetic` or
 
 ## Limitations
 
-- Live TikTok scraping is optional and gated behind Apify.
+- Live TikTok discovery is optional and gated behind authorized Research API
+  access or explicit browser opt-in.
 - No persistent database, authentication, or campaign management.
-- General-brand relevance uses keyword overlap unless pre-computed embeddings
-  are provided.
+- BM25 quality depends on the lexical content available in structured profiles,
+  crawled brand text, and creator bios/posts.
 - Audience demographics are never assumed; verification is always
   `Unavailable`.
 
@@ -208,6 +246,7 @@ All synthetic data is explicitly labelled `source_type: synthetic` or
 - Thailand-market signals are distinguished from audience geography.
 - Provider failures are visible in `source_status`; fallbacks never masquerade
   as live data.
+- Provider errors are sanitized and credentials/cookies are never logged.
 - No secrets are committed (see `.gitignore`).
 
 ## License

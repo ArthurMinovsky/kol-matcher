@@ -75,8 +75,8 @@ async def test_removing_bio_does_not_change_match_score():
     )
     no_bio = full.model_copy(update={"bio": None})
 
-    full_recs = await score_and_rank([full], brand, None, top_n=1)
-    no_bio_recs = await score_and_rank([no_bio], brand, None, top_n=1)
+    full_recs = await score_and_rank([full], brand, top_n=1)
+    no_bio_recs = await score_and_rank([no_bio], brand, top_n=1)
 
     assert full_recs[0].match_score == no_bio_recs[0].match_score
     assert full_recs[0].evidence_coverage > no_bio_recs[0].evidence_coverage

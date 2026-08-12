@@ -9,12 +9,23 @@ from app.crawlers.website_crawler import scrape_website
 
 
 @pytest.mark.asyncio
-async def test_scrape_facebook_returns_failed_without_token():
-    with patch("app.crawlers.facebook_crawler.settings") as mock_settings:
-        mock_settings.apify_api_token = ""
+async def test_scrape_facebook_falls_back_to_http_without_token():
+    """Facebook uses the direct public HTTP path without a third-party actor."""
+    with patch("app.crawlers.facebook_crawler.httpx.AsyncClient.get") as mock_get:
+        mock_resp = AsyncMock()
+        mock_resp.text = (
+            "<!DOCTYPE html><html><head>"
+            "<title>Test Page</title>"
+            "<meta name='description' content='Test description'>"
+            "</head><body></body></html>"
+        )
+        mock_resp.is_redirect = False
+        mock_resp.raise_for_status = lambda: None
+        mock_get.return_value = mock_resp
+
         result = await scrape_facebook_page("https://www.facebook.com/test")
-        assert result.status == "FAILED"
-        assert "APIFY_API_TOKEN" in result.error
+        assert result.status == "LIVE"
+        assert result.provider == "facebook_http"
 
 
 @pytest.mark.asyncio
@@ -31,7 +42,8 @@ async def test_scrape_website_returns_live_for_static_page():
             "<p>Visit our shop at Siam Paragon for delicious desserts.</p>"
             "</article></body></html>"
         )
-        mock_resp.raise_for_status = AsyncMock()
+        mock_resp.is_redirect = False
+        mock_resp.raise_for_status = lambda: None
         mock_get.return_value = mock_resp
 
         result = await scrape_website("https://parameter.co.th")
@@ -46,7 +58,8 @@ async def test_scrape_website_returns_failed_for_empty_page():
     with patch("app.crawlers.website_crawler.httpx.AsyncClient.get") as mock_get:
         mock_resp = AsyncMock()
         mock_resp.text = "<!DOCTYPE html><html><body></body></html>"
-        mock_resp.raise_for_status = AsyncMock()
+        mock_resp.is_redirect = False
+        mock_resp.raise_for_status = lambda: None
         mock_get.return_value = mock_resp
 
         result = await scrape_website("https://empty.com")

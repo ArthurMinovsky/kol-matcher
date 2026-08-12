@@ -11,11 +11,12 @@ services:
       CORS_ORIGINS: http://localhost:3000
       TYPHOON_API_KEY: ${TYPHOON_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      APIFY_API_TOKEN: ${APIFY_API_TOKEN:-}
-      APIFY_TIKTOK_ACTOR: ${APIFY_TIKTOK_ACTOR:-clockworks/free-tiktok-scraper}
+      TIKTOK_RESEARCH_API_TOKEN: ${TIKTOK_RESEARCH_API_TOKEN:-}
+      TIKTOK_RESEARCH_API_BASE_URL: ${TIKTOK_RESEARCH_API_BASE_URL:-https://open.tiktokapis.com}
+      TIKTOK_BROWSER_ENABLED: ${TIKTOK_BROWSER_ENABLED:-false}
+      TIKTOK_BROWSER_CDP_URL: ${TIKTOK_BROWSER_CDP_URL:-}
     volumes:
       - ./data:/app/data:ro
-      - model_cache:/app/models
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 5s
@@ -37,5 +38,27 @@ services:
       api:
         condition: service_healthy
 
+  langflow:
+    build:
+      context: ./langflow
+      dockerfile: Dockerfile
+    profiles:
+      - matching-lab
+    ports:
+      - "127.0.0.1:7860:7860"
+    environment:
+      LANGFLOW_AUTO_LOGIN: ${LANGFLOW_AUTO_LOGIN:-false}
+      LANGFLOW_HOST: 0.0.0.0
+      LANGFLOW_PORT: "7860"
+      LANGFLOW_CONFIG_DIR: /app/langflow
+      LANGFLOW_COMPONENTS_PATH: /app/custom_components
+      LANGFLOW_SUPERUSER: ${LANGFLOW_SUPERUSER:-langflow}
+      LANGFLOW_SUPERUSER_PASSWORD: ${LANGFLOW_SUPERUSER_PASSWORD:-}
+    volumes:
+      - langflow_data:/app/langflow
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
-  model_cache:
+  langflow_data:

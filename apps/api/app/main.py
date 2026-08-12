@@ -7,9 +7,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from .models.api import AnalyzeRequest, AnalyzeResponse, HealthResponse
+from .models.matching import CandidateMatch, MatchingRequest, MatchingResponse
 from .safety.url_safety import is_valid_facebook_url
 from .services.pipeline import analyze_brand
 from .services.ranker import run_fixture_pipeline
+from .services.bm25_matcher import score_creators
 
 app = FastAPI(
     title="Thai TikTok KOL Matcher API",
@@ -58,6 +60,39 @@ async def analyze(req: AnalyzeRequest) -> AnalyzeResponse:
             detail="facebook_url must be a valid public facebook.com URL",
         )
     return await analyze_brand(req)
+
+
+@app.post(
+    "/api/matching/score",
+    response_model=MatchingResponse,
+    tags=["matching"],
+    summary="Run a named KOL matching algorithm",
+)
+async def matching_score(req: MatchingRequest) -> MatchingResponse:
+    """Run the deterministic matcher for Langflow and offline experiments."""
+    try:
+        matches = score_creators(
+            req.brand_profile,
+            req.creators,
+            algorithm_key=req.algorithm_key,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return MatchingResponse(
+        algorithm_key=req.algorithm_key,
+        matches=[
+            CandidateMatch(
+                rank=index,
+                username=match.username,
+                normalized_score=match.normalized_score,
+                raw_score=match.raw_score,
+                matched_keywords=match.matched_keywords,
+                algorithm_key=match.algorithm_key,
+            )
+            for index, match in enumerate(matches, start=1)
+        ],
+    )
 
 
 # ── Demo endpoint ──────────────────────────────────────────────────────────

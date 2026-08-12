@@ -83,33 +83,6 @@ def load_drpong_creators() -> list[CreatorProfile]:
 
 
 @lru_cache(maxsize=1)
-def load_drpong_embeddings() -> dict[str, list[float]]:
-    """Load pre-computed embeddings for brand and creators.
-
-    Returns:
-        dict with keys:
-            "brand_embedding":    list[float]  — brand vector
-            "creator_embeddings": dict[str, list[float]]  — keyed by username
-    """
-    path = FIXTURE_DIR / "drpong" / "embeddings.json"
-    with open(path) as f:
-        return json.load(f)
-
-
-def inject_fixture_embeddings(creators: list[CreatorProfile]) -> None:
-    """Inject pre-computed embeddings into creator objects (mutates in-place).
-
-    This is called before scoring so the relevance scorer can use
-    vector similarity without calling OpenAI.
-    """
-    embeddings = load_drpong_embeddings()
-    creator_embs: dict[str, list[float]] = embeddings.get("creator_embeddings", {})
-    for creator in creators:
-        if creator.username in creator_embs:
-            creator.embedding = creator_embs[creator.username]
-
-
-@lru_cache(maxsize=1)
 def load_demo_pool_creators() -> list[CreatorProfile]:
     """Load the mixed-industry synthetic demo pool."""
     path = FIXTURE_DIR / "demo_pool" / "creators.json"

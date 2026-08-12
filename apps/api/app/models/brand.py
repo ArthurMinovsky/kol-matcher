@@ -31,4 +31,7 @@ class BrandProfile(BaseModel):
     # Raw combined text from Facebook + website for keyword extraction
     raw_text: str | None = None
 
+    # Grounded explanation of how the brand profile was formed
+    analysis_rationale: str | None = None
+
     extraction_method: Literal["fixture", "llm", "heuristic"] = "fixture"

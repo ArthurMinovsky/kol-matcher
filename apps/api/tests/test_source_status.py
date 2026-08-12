@@ -8,16 +8,20 @@ from app.services.pipeline import analyze_brand
 
 
 @pytest.mark.asyncio
-async def test_drpong_request_returns_cached_status():
+async def test_drpong_request_uses_general_pipeline():
+    """Dr. Pong is now treated as any other brand — goes through general pipeline."""
     req = AnalyzeRequest(
         brand_name="Dr. Pong",
         facebook_url="https://www.facebook.com/drpongclinic",
         campaign_goal="educational skincare",
     )
     resp = await analyze_brand(req)
-    assert resp.source_status.tiktok == "CACHED"
-    assert resp.source_status.brand_extraction == "CACHED"
-    assert resp.brand_profile.extraction_method == "fixture"
+    # Dr. Pong now uses the general pipeline (not fixture shortcut)
+    assert resp.brand_profile.extraction_method in ("heuristic", "llm")
+    assert resp.source_status.brand_extraction in ("CACHED", "PARTIAL", "LIVE")
+    assert resp.source_status.tiktok in ("CACHED", "FAILED", "LIVE")
+    assert resp.provider_provenance["tiktok"] == "demo_pool"
+    assert len(resp.recommendations) == 15
 
 
 @pytest.mark.asyncio
@@ -30,6 +34,7 @@ async def test_heuristic_request_returns_demo_pool():
     resp = await analyze_brand(req)
     assert resp.brand_profile.extraction_method == "heuristic"
     assert resp.source_status.brand_extraction in ("CACHED", "PARTIAL")
+    assert resp.provider_provenance["tiktok"] == "demo_pool"
     assert len(resp.recommendations) == 15
     assert all(r.creator.source_type == "synthetic" for r in resp.recommendations)
 

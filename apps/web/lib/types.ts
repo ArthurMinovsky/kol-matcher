@@ -16,6 +16,7 @@ export interface BrandProfile {
   facebook_url?: string | null
   desired_style_tags: string[]
   extraction_method: 'fixture' | 'llm' | 'heuristic'
+  analysis_rationale?: string | null
 }
 
 export interface CreatorProfile {
@@ -29,10 +30,23 @@ export interface CreatorProfile {
   source_type: string
 }
 
+export interface ScoringEvidence {
+  signal: string
+  value: string
+  source?: string | null
+  weight?: number | null
+  available?: boolean
+  matched_keywords?: string[] | null
+  algorithm_key?: string | null
+  raw_score?: number | null
+}
+
 export interface Recommendation {
   rank: number
   creator: CreatorProfile
   match_score: number
+  bm25_relevance: number
+  llm_relevance: number
   relevance: number
   engagement: number
   thailand_relevance: number
@@ -40,13 +54,16 @@ export interface Recommendation {
   evidence_coverage: number
   audience_verification: string
   recommendation_confidence: 'HIGH' | 'MEDIUM' | 'LOW'
+  rationale: string
   explanation: string
   limitations: string[]
+  scoring_evidence?: ScoringEvidence[] | null
 }
 
 export interface AnalyzeResponse {
   brand_profile: BrandProfile
   recommendations: Recommendation[]
   source_status: Record<string, SourceState>
+  provider_provenance?: Record<string, string>
   limitations: string[]
 }

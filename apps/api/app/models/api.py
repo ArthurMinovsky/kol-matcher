@@ -1,7 +1,7 @@
 """API request/response models."""
 from __future__ import annotations
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from .brand import BrandProfile, SourceState
 from .creator import CreatorProfile
@@ -11,7 +11,8 @@ from .evidence import AudienceVerification, Evidence, EvidenceCoverage, Recommen
 class Recommendation(BaseModel):
     """A single ranked KOL recommendation.
 
-    Match Score = 0.45*relevance + 0.25*engagement + 0.15*thailand_relevance + 0.15*style_fit
+    Match Score = 0.20*bm25_relevance + 0.25*llm_relevance
+               + 0.25*engagement + 0.15*thailand_relevance + 0.15*style_fit
     All component scores are clamped to 0..100.
     Evidence Coverage and Recommendation Confidence do NOT affect Match Score.
     """
@@ -21,6 +22,8 @@ class Recommendation(BaseModel):
 
     # Match Score components (all 0..100, stored unrounded for stable sort)
     match_score: float
+    bm25_relevance: float
+    llm_relevance: float
     relevance: float
     engagement: float
     thailand_relevance: float
@@ -33,6 +36,7 @@ class Recommendation(BaseModel):
     recommendation_confidence: RecommendationConfidence
 
     # Explanation (deterministic template — not LLM output for fixture path)
+    rationale: str
     explanation: str
     limitations: list[str]
     scoring_evidence: list[Evidence]
@@ -107,6 +111,7 @@ class AnalyzeResponse(BaseModel):
     brand_profile: BrandProfile
     recommendations: list[Recommendation]
     source_status: SourceStatusMap
+    provider_provenance: dict[str, str] = Field(default_factory=dict)
     limitations: list[str]
 
 

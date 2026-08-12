@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from urllib.parse import urljoin
 
 import httpx
 
 from ..providers.base import SourceResult
+from ..safety.url_safety import is_public_http_url
 
 
 try:
@@ -32,19 +34,55 @@ async def scrape_website(url: str) -> SourceResult[dict]:
         - description: str
         - body_text: str  (main article text)
     """
+    if not is_public_http_url(url):
+        return SourceResult(
+            status="FAILED",
+            data=None,
+            provider="website",
+            error="Website URL is not a public HTTP(S) target",
+        )
+
     try:
-        async with httpx.AsyncClient(
-            timeout=30.0, follow_redirects=True
-        ) as client:
-            resp = await client.get(url)
-            await resp.raise_for_status()
-            html = resp.text
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=False) as client:
+            current_url = url
+            for _ in range(3):
+                if not is_public_http_url(current_url):
+                    return SourceResult(
+                        status="FAILED",
+                        data=None,
+                        provider="website",
+                        error="Website redirect left the public HTTP(S) boundary",
+                    )
+                resp = await client.get(current_url)
+                if resp.is_redirect:
+                    location = resp.headers.get("location")
+                    if not location:
+                        break
+                    current_url = urljoin(current_url, location)
+                    continue
+                resp.raise_for_status()
+                html = resp.text
+                break
+            else:
+                return SourceResult(
+                    status="FAILED",
+                    data=None,
+                    provider="website",
+                    error="Website exceeded the redirect limit",
+                )
+            if "html" not in locals():
+                return SourceResult(
+                    status="FAILED",
+                    data=None,
+                    provider="website",
+                    error="Website redirect did not return a final response",
+                )
     except Exception as exc:
         return SourceResult(
             status="FAILED",
             data=None,
             provider="website",
-            error=f"Website fetch failed: {exc}",
+            error=f"Website fetch failed: {type(exc).__name__}",
         )
 
     body_text = None

@@ -65,17 +65,120 @@ _INDUSTRY_MAP: dict[str, dict] = {
 }
 
 
-def _infer_industry(brand_name: str) -> str | None:
-    lowered = brand_name.lower()
+# Manual overrides for known brands (exact or substring match)
+_BRAND_OVERRIDES: dict[str, str] = {
+    "dr. pong": "beauty",
+    "drpong": "beauty",
+    "dr pong": "beauty",
+    "parameter": "food",
+    "traveloka": "travel",
+}
+
+# Additional trigger words that hint at industry (not in _INDUSTRY_MAP keys)
+_EXTRA_TRIGGERS: dict[str, str] = {
+    "clinic": "beauty",
+    "dermatology": "beauty",
+    "dermatologist": "beauty",
+    "aesthetic": "beauty",
+    "spa": "beauty",
+    "salon": "beauty",
+    "gelato": "food",
+    "ice cream": "food",
+    "dessert": "food",
+    "bakery": "food",
+    "cafe": "food",
+    "coffee": "food",
+    "bistro": "food",
+    "kitchen": "food",
+    "chef": "food",
+    "michelin": "food",
+    "brewery": "food",
+    "hotel": "travel",
+    "resort": "travel",
+    "airline": "travel",
+    "tour": "travel",
+    "hostel": "travel",
+    "boutique": "fashion",
+    "apparel": "fashion",
+    "wardrobe": "fashion",
+    "sneaker": "fashion",
+    "jewelry": "fashion",
+    "gym": "fitness",
+    "yoga": "fitness",
+    "crossfit": "fitness",
+    "nutrition": "fitness",
+    "protein": "fitness",
+    "app": "tech",
+    "software": "tech",
+    "startup": "tech",
+    "fintech": "finance",
+    "bank": "finance",
+    "crypto": "finance",
+    "broker": "finance",
+    "esports": "gaming",
+    "game": "gaming",
+    "streamer": "gaming",
+    "console": "gaming",
+}
+
+
+def build_brand_analysis_rationale(profile: BrandProfile) -> str:
+    """Explain the profile using only supplied brand and source signals."""
+    industry = profile.industry or "general/lifestyle"
+    topics = ", ".join(profile.topics[:4]) if profile.topics else "available profile terms"
+    if profile.raw_text:
+        basis = "the supplied brand details and crawled public source text"
+    else:
+        basis = "the supplied brand name and campaign goal"
+    goal = profile.campaign_goal or "the requested campaign"
+    return (
+        f"This profile is based on {basis} for the {goal} campaign, "
+        f"mapping the brand to {industry} topics such as {topics}."
+    )
+
+
+def _infer_industry(brand_name: str, campaign_goal: str = "") -> str | None:
+    """Infer industry from brand name, manual overrides, and campaign goal."""
+    lowered_name = brand_name.lower()
+    lowered_goal = campaign_goal.lower()
+
+    # 1. Manual brand overrides (exact/substring)
+    for pattern, industry in _BRAND_OVERRIDES.items():
+        if pattern in lowered_name:
+            return industry
+
+    # 2. Check _INDUSTRY_MAP keywords in brand name
     for industry, data in _INDUSTRY_MAP.items():
-        if industry in lowered:
+        if industry in lowered_name:
             return industry
         for kw in data["english_keywords"]:
-            if kw in lowered:
+            if kw in lowered_name:
                 return industry
         for kw in data["thai_keywords"]:
-            if kw in lowered:
+            if kw in lowered_name:
                 return industry
+
+    # 3. Check extra triggers in brand name
+    for trigger, industry in _EXTRA_TRIGGERS.items():
+        if trigger in lowered_name:
+            return industry
+
+    # 4. Check campaign goal for industry keywords (strong signal)
+    for industry, data in _INDUSTRY_MAP.items():
+        if industry in lowered_goal:
+            return industry
+        for kw in data["english_keywords"]:
+            if kw in lowered_goal:
+                return industry
+        for kw in data["thai_keywords"]:
+            if kw in lowered_goal:
+                return industry
+
+    # 5. Check extra triggers in campaign goal
+    for trigger, industry in _EXTRA_TRIGGERS.items():
+        if trigger in lowered_goal:
+            return industry
+
     return None
 
 
@@ -85,9 +188,9 @@ def extract_brand_profile_heuristic(
     website_url: str | None,
     campaign_goal: str,
 ) -> BrandProfile:
-    industry_key = _infer_industry(brand_name)
+    industry_key = _infer_industry(brand_name, campaign_goal)
     data = _INDUSTRY_MAP.get(industry_key, {})
-    return BrandProfile(
+    profile = BrandProfile(
         brand_name=brand_name,
         industry=data.get("industry", "General / Lifestyle"),
         description=f"{brand_name} brand ({data.get('industry', 'General / Lifestyle')}).",
@@ -107,3 +210,5 @@ def extract_brand_profile_heuristic(
         desired_style_tags=desired_style_tags_for(campaign_goal),
         extraction_method="heuristic",
     )
+    profile.analysis_rationale = build_brand_analysis_rationale(profile)
+    return profile

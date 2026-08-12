@@ -17,6 +17,11 @@ export function BrandProfilePanel({ brand }: { brand: BrandProfile }) {
       <h3>{brand.brand_name}</h3>
       {brand.industry && <p className="meta">{brand.industry}</p>}
       {brand.description && <p>{brand.description}</p>}
+      {brand.analysis_rationale && (
+        <p className="rationale">
+          <strong>Analysis rationale:</strong> {brand.analysis_rationale}
+        </p>
+      )}
 
       <div className="tag-grid">
         <div>

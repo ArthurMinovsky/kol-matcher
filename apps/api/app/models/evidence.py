@@ -19,6 +19,9 @@ class Evidence(BaseModel):
     source: str         # Where this came from: "bio", "posts", "metadata", etc.
     weight: float       # Contribution to evidence coverage (0–100 scale)
     available: bool     # Whether this signal was actually observed
+    matched_keywords: list[str] = []  # Overlapping keywords for keyword-match signals
+    algorithm_key: str | None = None
+    raw_score: float | None = None
 
 
 class EvidenceCoverage(BaseModel):

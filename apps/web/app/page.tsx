@@ -5,7 +5,7 @@ import { AnalysisForm } from '@/components/analysis-form'
 import { BrandProfilePanel } from '@/components/brand-profile'
 import { RecommendationTable } from '@/components/recommendation-table'
 import { SourceStatus } from '@/components/source-status'
-import { analyzeBrand, loadDrPongDemo } from '@/lib/api'
+import { analyzeBrand } from '@/lib/api'
 import type { AnalyzeResponse } from '@/lib/types'
 
 export default function Home() {
@@ -26,19 +26,6 @@ export default function Home() {
     }
   }
 
-  const runDemo = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await loadDrPongDemo()
-      setResult(data)
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
     <main className="shell">
       <section className="hero">
@@ -47,7 +34,7 @@ export default function Home() {
           <h1>Find Thai TikTok creators that fit your <span className="highlight">brand.</span></h1>
           <p>Enter your brand name and Facebook page. The demo ranks creators deterministically with explainable scores.</p>
         </div>
-        <AnalysisForm onAnalyze={runAnalyze} onDemo={runDemo} loading={loading} />
+        <AnalysisForm onAnalyze={runAnalyze} loading={loading} />
       </section>
 
       {error && <div className="error-banner">{error}</div>}
@@ -56,7 +43,7 @@ export default function Home() {
       {result && (
         <>
           <BrandProfilePanel brand={result.brand_profile} />
-          <SourceStatus status={result.source_status} />
+          <SourceStatus status={result.source_status} provenance={result.provider_provenance} />
           <RecommendationTable recommendations={result.recommendations} brand={result.brand_profile} />
         </>
       )}

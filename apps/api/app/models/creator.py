@@ -53,11 +53,8 @@ class CreatorProfile(BaseModel):
     # Recent posts (used for engagement scoring)
     recent_posts: list[CreatorPost] = []
 
-    # Raw combined text from bio + post captions for keyword extraction
+    # Raw combined text from bio + post captions for BM25 matching
     raw_text: str | None = None
-
-    # Embedding vector (pre-computed for fixtures)
-    embedding: list[float] | None = None
 
     # Provenance
     source_type: str = "synthetic"  # "synthetic" | "cached" | "live"

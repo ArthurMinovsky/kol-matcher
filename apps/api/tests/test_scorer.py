@@ -14,8 +14,12 @@ from __future__ import annotations
 import pytest
 
 from app.config import settings
+from app.models.brand import BrandProfile
 from app.models.creator import CreatorPost, CreatorProfile
+from app.services.bm25_matcher import score_creators
 from app.services.scorer import (
+    compute_combined_relevance,
+    compute_effective_relevance,
     compute_engagement,
     compute_evidence_coverage,
     compute_match_score,
@@ -49,7 +53,6 @@ def make_skincare_creator(**overrides) -> CreatorProfile:
             CreatorPost(post_id="t4", caption="เซรั่ม", views=300000, likes=21000, comments=1500, shares=2000),
             CreatorPost(post_id="t5", caption="ผิวสวย", views=280000, likes=18000, comments=1200, shares=1600),
         ],
-        embedding=[0.90, 0.87, 0.84, 0.78, 0.72, 0.64, 0.28, 0.22, 0.18, 0.16, 0.13, 0.11, 0.09, 0.07, 0.04, 0.02],
         source_type="synthetic",
     )
     defaults.update(overrides)
@@ -72,14 +75,19 @@ def make_gaming_creator(**overrides) -> CreatorProfile:
             CreatorPost(post_id="g1", caption="ROV", views=3000000, likes=250000, comments=16000, shares=21000),
             CreatorPost(post_id="g2", caption="gaming", views=2500000, likes=208000, comments=13000, shares=17000),
         ],
-        embedding=[0.02, 0.01, 0.02, 0.01, 0.02, 0.01, 0.90, 0.85, 0.80, 0.70, 0.60, 0.50, 0.40, 0.30, 0.20, 0.10],
         source_type="synthetic",
     )
     defaults.update(overrides)
     return CreatorProfile(**defaults)
 
 
-BRAND_EMBEDDING = [0.92, 0.88, 0.85, 0.78, 0.72, 0.65, 0.30, 0.25, 0.20, 0.18, 0.15, 0.12, 0.10, 0.08, 0.05, 0.03]
+BRAND_PROFILE = BrandProfile(
+    brand_name="Dr. Pong Clinic",
+    industry="Beauty & Skincare",
+    topics=["skincare", "dermatology", "acne"],
+    english_keywords=["skincare", "dermatology", "acne"],
+    campaign_goal="educational skincare",
+)
 
 
 # ── Weight invariants ──────────────────────────────────────────────────────
@@ -120,23 +128,23 @@ def test_evidence_weights_sum_to_100():
 
 def test_relevance_in_range():
     creator = make_skincare_creator()
-    score = compute_relevance(creator, BRAND_EMBEDDING)
+    score = compute_relevance(score_creators(BRAND_PROFILE, [creator])[0])
     assert 0.0 <= score <= 100.0
 
 
 def test_skincare_creator_higher_relevance_than_gaming():
     derma = make_skincare_creator()
     gaming = make_gaming_creator()
-    derma_score = compute_relevance(derma, BRAND_EMBEDDING)
-    gaming_score = compute_relevance(gaming, BRAND_EMBEDDING)
+    derma_score = compute_relevance(score_creators(BRAND_PROFILE, [derma])[0])
+    gaming_score = compute_relevance(score_creators(BRAND_PROFILE, [gaming])[0])
     assert derma_score > gaming_score, (
         f"Derma ({derma_score:.1f}) should outrank gaming ({gaming_score:.1f})"
     )
 
 
-def test_relevance_fallback_without_embedding():
-    creator = make_skincare_creator(embedding=None)
-    score = compute_relevance(creator, BRAND_EMBEDDING)
+def test_relevance_uses_bm25_without_embedding():
+    creator = make_skincare_creator()
+    score = compute_relevance(score_creators(BRAND_PROFILE, [creator])[0])
     assert 0.0 <= score <= 100.0
 
 
@@ -242,20 +250,37 @@ def test_style_fit_no_desired_styles():
 # ── Composite match score ─────────────────────────────────────────────────
 
 def test_match_score_in_range():
-    score = compute_match_score(80.0, 60.0, 90.0, 70.0)
+    score = compute_match_score(80.0, 70.0, 60.0, 90.0, 70.0)
     assert 0.0 <= score <= 100.0
 
 
 def test_match_score_weighted_correctly():
     # With known values, verify the weighted sum
-    r, e, t, s = 100.0, 100.0, 100.0, 100.0
+    bm25, llm, e, t, s = 100.0, 100.0, 100.0, 100.0, 100.0
     expected = (
-        r * settings.RELEVANCE_WEIGHT
+        bm25 * settings.BM25_RELEVANCE_WEIGHT
+        + llm * settings.LLM_RELEVANCE_WEIGHT
         + e * settings.ENGAGEMENT_WEIGHT
         + t * settings.THAILAND_WEIGHT
         + s * settings.STYLE_WEIGHT
     )
-    assert compute_match_score(r, e, t, s) == expected
+    assert compute_match_score(bm25, llm, e, t, s) == expected
+
+
+def test_combined_relevance_normalizes_the_45_percent_bucket():
+    assert compute_combined_relevance(100.0, 100.0) == 100.0
+    assert abs(compute_combined_relevance(100.0, 0.0) - (20.0 / 45.0 * 100.0)) < 1e-6
+    assert abs(compute_combined_relevance(0.0, 100.0) - (25.0 / 45.0 * 100.0)) < 1e-6
+
+
+def test_unavailable_llm_relevance_renormalizes_to_bm25():
+    assert compute_effective_relevance(80.0, 50.0, llm_available=False) == 80.0
+
+
+def test_available_llm_relevance_keeps_hybrid_weights():
+    assert compute_effective_relevance(80.0, 60.0, llm_available=True) == pytest.approx(
+        compute_combined_relevance(80.0, 60.0)
+    )
 
 
 def test_match_score_ordering():
@@ -264,11 +289,11 @@ def test_match_score_ordering():
     gaming = make_gaming_creator()
 
     def score(creator):
-        r = compute_relevance(creator, BRAND_EMBEDDING)
+        bm25 = compute_relevance(score_creators(BRAND_PROFILE, [creator])[0])
         e = compute_engagement(creator)
         t = compute_thailand_relevance(creator)
         s = compute_style_fit(creator, ["educational", "expert", "tutorial"])
-        return compute_match_score(r, e, t, s)
+        return compute_match_score(bm25, 50.0, e, t, s)
 
     assert score(derma) > score(gaming), "Derma creator must outscore gaming creator"
 

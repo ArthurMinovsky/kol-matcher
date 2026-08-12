@@ -20,23 +20,37 @@ class Settings(BaseSettings):
     # Priority: Typhoon first, then Gemini.
     typhoon_api_key: str = ""
     typhoon_base_url: str = "https://api.opentyphoon.ai/v1"
-    typhoon_model: str = "typhoon-v2.1-72b-instruct"
+    typhoon_model: str = "typhoon-v2.5-30b-a3b-instruct"
 
     gemini_api_key: str = ""
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     gemini_model: str = "gemini-2.0-flash"
 
+    # ── LLM-as-judge ────────────────────────────────────────────────────────
+    llm_judge_batch_size: int = 5
+    llm_judge_max_tokens: int = 1024
+
     # ── Creator data providers ────────────────────────────────────────────
-    apify_api_token: str = ""
-    apify_tiktok_actor: str = "clockworks/free-tiktok-scraper"  # configurable
-    apify_timeout_seconds: int = 120
-    apify_max_creators: int = 30
+    tiktok_research_api_token: str = ""
+    tiktok_research_api_base_url: str = "https://open.tiktokapis.com"
+    tiktok_research_timeout_seconds: int = 30
+    tiktok_max_creators: int = 30
+    tiktok_browser_enabled: bool = False
+    tiktok_browser_cdp_url: str = ""
+    tiktok_browser_timeout_seconds: int = 30
+    tiktok_browser_max_creators: int = 30
 
     # ── Match Score weights (must sum to 1.0) ─────────────────────────────
     RELEVANCE_WEIGHT: float = 0.45
+    BM25_RELEVANCE_WEIGHT: float = 0.20
+    LLM_RELEVANCE_WEIGHT: float = 0.25
     ENGAGEMENT_WEIGHT: float = 0.25
     THAILAND_WEIGHT: float = 0.15
     STYLE_WEIGHT: float = 0.15
+
+    # Relative weights inside the 45% relevance bucket.
+    RELEVANCE_BM25_BUCKET_WEIGHT: float = 20 / 45
+    RELEVANCE_LLM_BUCKET_WEIGHT: float = 25 / 45
 
     # ── Thailand Market Relevance signal weights (must sum to 100) ─────────
     THAILAND_CAPTION_RATIO_WEIGHT: int = 40
@@ -56,30 +70,8 @@ class Settings(BaseSettings):
     # Median across posts, clip to this max before pool-relative scaling.
     ENGAGEMENT_CLIP_MAX: float = 0.30
 
-    # ── Relevance: cosine similarity → 0..100 mapping ─────────────────────
-    # score = clip(similarity * RELEVANCE_SIM_SCALE + RELEVANCE_SIM_OFFSET, 0, 100)
-    # Calibrated so that:
-    #   similarity=0.80 → ~86, similarity=0.50 → ~50, similarity=0.20 → ~14
-    RELEVANCE_SIM_SCALE: float = 120.0
-    RELEVANCE_SIM_OFFSET: float = -10.0
-
-    # ── Facebook scraping (Apify cloud actor) ─────────────────────────────
-    apify_facebook_actor: str = "apify/facebook-pages-scraper"
-    apify_facebook_timeout_seconds: int = 120
-
-    # ── Thai NLP / semantic similarity ─────────────────────────────────────
-    sentence_transformer_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
-    keyword_max_count: int = 15
-
-    # ── LLM-as-judge ──────────────────────────────────────────────────────
-    llm_judge_batch_size: int = 5
-    llm_judge_max_tokens: int = 1024
-
-    # ── Relevance component weights (within the 45% relevance bucket) ─────
-    # relevance_total = keyword_weight * keyword_score + llm_weight * llm_score
-    # These must sum to 1.0 (they're relative weights within relevance)
-    relevance_keyword_weight: float = 0.5556  # = 25/45
-    relevance_llm_weight: float = 0.4444      # = 20/45
+    # ── Matching algorithm ────────────────────────────────────────────────
+    matching_algorithm: str = "bm25_v2_lekcut"
 
     @property
     def llm_api_key(self) -> str:

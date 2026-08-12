@@ -1,6 +1,7 @@
-"""Deterministic four-factor KOL scoring engine.
+"""Hybrid KOL scoring engine with deterministic component calculations.
 
-Match Score = 0.45 × Relevance
+Match Score = 0.20 × BM25 Relevance
+            + 0.25 × LLM Judge Relevance
             + 0.25 × Engagement
             + 0.15 × ThailandRelevance
             + 0.15 × StyleFit
@@ -15,8 +16,6 @@ The scoring is intentionally deterministic:
 """
 from __future__ import annotations
 
-import math
-import re
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -24,6 +23,7 @@ import numpy as np
 from ..config import settings
 from ..models.creator import CreatorProfile, CreatorPost
 from ..models.evidence import Evidence, EvidenceCoverage
+from .bm25_matcher import BM25Match
 
 if TYPE_CHECKING:
     from ..models.brand import BrandProfile
@@ -31,130 +31,40 @@ if TYPE_CHECKING:
 
 # ── 1. Relevance Score ─────────────────────────────────────────────────────
 
-def compute_relevance(
-    creator: CreatorProfile,
-    brand_embedding: list[float],
+def compute_relevance(match: BM25Match) -> float:
+    """Return the normalized BM25 relevance produced by the selected matcher."""
+    return float(np.clip(match.normalized_score, 0.0, 100.0))
+
+
+def compute_combined_relevance(bm25_relevance: float, llm_relevance: float) -> float:
+    """Combine BM25 and LLM relevance inside the 45% relevance bucket."""
+    bm25 = float(np.clip(bm25_relevance, 0.0, 100.0))
+    llm = float(np.clip(llm_relevance, 0.0, 100.0))
+    return float(
+        np.clip(
+            bm25 * settings.RELEVANCE_BM25_BUCKET_WEIGHT
+            + llm * settings.RELEVANCE_LLM_BUCKET_WEIGHT,
+            0.0,
+            100.0,
+        )
+    )
+
+
+def compute_effective_relevance(
+    bm25_relevance: float,
+    llm_relevance: float,
+    *,
+    llm_available: bool,
 ) -> float:
-    """Cosine similarity between creator and brand embeddings → 0..100.
+    """Return relevance after excluding unavailable judge evidence.
 
-    Uses the creator's pre-computed embedding when available.
-    Falls back to a keyword-overlap heuristic when embeddings are unavailable.
+    The displayed unavailable judge score remains neutral at 50, but it must
+    not contribute to ordering. When unavailable, the relevance bucket is
+    renormalized to the available BM25 signal.
     """
-    if creator.embedding and brand_embedding:
-        return _embedding_relevance(creator.embedding, brand_embedding)
-    # Keyword fallback (used when embeddings are unavailable)
-    return _keyword_relevance(creator, brand_embedding)
-
-
-def _embedding_relevance(creator_emb: list[float], brand_emb: list[float]) -> float:
-    """Cosine similarity → 0..100 with configurable scale/offset."""
-    a = np.array(creator_emb, dtype=float)
-    b = np.array(brand_emb, dtype=float)
-    norm_a = np.linalg.norm(a)
-    norm_b = np.linalg.norm(b)
-    if norm_a == 0 or norm_b == 0:
-        return 0.0
-    similarity = float(np.dot(a, b) / (norm_a * norm_b))
-    raw = similarity * settings.RELEVANCE_SIM_SCALE + settings.RELEVANCE_SIM_OFFSET
-    return float(np.clip(raw, 0.0, 100.0))
-
-
-def _keyword_relevance(creator: CreatorProfile, _: list[float]) -> float:
-    """Topic-tag overlap heuristic — used only when embeddings are absent."""
-    skincare_topics = {
-        "dermatology", "skincare", "acne", "skin brightening", "UV protection",
-        "anti-aging", "beauty education", "sensitive skin", "oily skin",
-        "moisturizing", "hydration", "sunscreen", "skin health", "eczema",
-        "ingredient science", "product review", "skincare review", "skin tips",
-    }
-    creator_topics = {t.lower() for t in creator.topic_tags}
-    overlap = len(creator_topics & skincare_topics)
-    return float(min(overlap / max(len(skincare_topics), 1) * 100 * 2.5, 100.0))
-
-
-async def compute_relevance_async(
-    creator: CreatorProfile,
-    brand: "BrandProfile",
-) -> tuple[float, float | None, float | None]:
-    """Composite relevance: 25% keyword matching + 20% LLM judge → 0..100.
-
-    Returns (relevance_score, keyword_subscore, llm_subscore).
-
-    The remaining 0% (of the 45% total relevance weight) comes from
-    the existing embedding fallback when available.
-
-    If keyword extraction unavailable, LLM takes full weight.
-    If LLM unavailable, keyword takes full weight.
-    If neither, falls back to legacy keyword heuristic.
-    """
-    from ..services.keyword_extractor import get_keyword_extractor
-    from ..services.llm_judge import judge_relevance, _condense_brand, _condense_creator
-
-    keyword_score = 0.0
-    llm_score = 0.0
-
-    # ── Keyword component ────────────────────────────────────────────────
-    try:
-        extractor = get_keyword_extractor()
-        brand_text = brand.raw_text or ""
-        creator_text = creator.raw_text or ""
-
-        brand_keywords = extractor.extract_keywords(
-            brand_text, max_keywords=settings.keyword_max_count
-        )
-        creator_keywords = extractor.extract_keywords(
-            creator_text, max_keywords=settings.keyword_max_count
-        )
-
-        # Keyword score = 0.5 * semantic_similarity + 0.5 * keyword_overlap
-        semantic_sim = extractor.semantic_similarity(brand_text, creator_text)
-        overlap = extractor.keyword_overlap_score(brand_keywords, creator_keywords)
-        keyword_score = (semantic_sim * 0.5 + overlap * 0.5) * 100.0
-    except Exception:
-        keyword_score = 0.0
-
-    # ── LLM judge component ────────────────────────────────────────────────
-    try:
-        brand_summary = _condense_brand(brand)
-        creator_summary = _condense_creator(creator)
-        judge_result = await judge_relevance(brand_summary, creator_summary)
-        llm_score = float(judge_result.get("score", 50.0))
-    except Exception:
-        llm_score = 0.0
-
-    # ── Combine ──────────────────────────────────────────────────────────
-    kw_weight = settings.relevance_keyword_weight  # 25/45
-    llm_weight = settings.relevance_llm_weight      # 20/45
-
-    if keyword_score > 0 and llm_score > 0:
-        return (
-            keyword_score * kw_weight + llm_score * llm_weight,
-            keyword_score,
-            llm_score,
-        )
-    elif keyword_score > 0:
-        return keyword_score, keyword_score, None
-    elif llm_score > 0:
-        return llm_score, None, llm_score
-    else:
-        # Fallback to legacy embedding or heuristic
-        if creator.embedding and brand.raw_text:
-            emb_score = _embedding_relevance(
-                creator.embedding, [0.0] * len(creator.embedding)
-            )
-            return emb_score, None, None
-        legacy = _keyword_relevance_legacy(creator, brand)
-        return legacy, None, None
-
-
-def _keyword_relevance_legacy(creator: CreatorProfile, brand: "BrandProfile") -> float:
-    """Legacy keyword overlap — used only when all modern methods fail."""
-    brand_topics = {t.lower() for t in brand.topics}
-    creator_topics = {t.lower() for t in creator.topic_tags}
-    overlap = len(brand_topics & creator_topics)
-    if not brand_topics:
-        return 0.0
-    return float(min(overlap / len(brand_topics) * 100.0, 100.0))
+    if not llm_available:
+        return float(np.clip(bm25_relevance, 0.0, 100.0))
+    return compute_combined_relevance(bm25_relevance, llm_relevance)
 
 
 # ── 2. Engagement Score ────────────────────────────────────────────────────
@@ -275,17 +185,26 @@ def compute_style_fit(creator: CreatorProfile, brand_desired_styles: list[str]) 
 # ── 5. Composite Match Score ───────────────────────────────────────────────
 
 def compute_match_score(
-    relevance: float,
+    bm25_relevance: float,
+    llm_relevance: float,
     engagement: float,
     thailand_relevance: float,
     style_fit: float,
+    llm_available: bool = True,
 ) -> float:
-    """Weighted sum of the four component scores → 0..100.
+    """Weighted sum of effective relevance and remaining scores → 0..100.
 
-    Weights are defined in Settings and must sum to 1.0.
+    When the judge is unavailable, its displayed neutral score is excluded and
+    the relevance bucket is renormalized to BM25. Weights are defined in
+    Settings and must sum to 1.0.
     """
+    effective_relevance = compute_effective_relevance(
+        bm25_relevance,
+        llm_relevance,
+        llm_available=llm_available,
+    )
     return (
-        relevance * settings.RELEVANCE_WEIGHT
+        effective_relevance * settings.RELEVANCE_WEIGHT
         + engagement * settings.ENGAGEMENT_WEIGHT
         + thailand_relevance * settings.THAILAND_WEIGHT
         + style_fit * settings.STYLE_WEIGHT
@@ -372,41 +291,58 @@ def build_scoring_evidence(
     engagement: float,
     thailand_relevance: float,
     style_fit: float,
-    keyword_score: float | None = None,
-    llm_score: float | None = None,
+    bm25_match: BM25Match,
+    *,
+    bm25_relevance: float | None = None,
+    llm_relevance: float = 50.0,
+    llm_available: bool = False,
 ) -> list[Evidence]:
     """Build a human-readable evidence list for the recommendation."""
     evidence: list[Evidence] = []
 
-    # Relevance
-    relevance_source = "embedding" if creator.embedding else "keyword+llm"
+    bm25_score = (
+        bm25_match.normalized_score
+        if bm25_relevance is None
+        else bm25_relevance
+    )
+    bm25_available = bm25_match.raw_score > 0 or bool(bm25_match.matched_keywords)
+
+    # Combined/effective relevance
+    combined_source = (
+        "hybrid_relevance" if llm_available else "bm25_relevance_renormalized"
+    )
     evidence.append(Evidence(
-        signal="Content Relevance",
+        signal="Combined Relevance",
         value=f"{relevance:.1f}/100",
-        source=relevance_source,
+        source=combined_source,
         weight=settings.RELEVANCE_WEIGHT * 100,
-        available=True,
+        available=bm25_available or llm_available,
+        algorithm_key=bm25_match.algorithm_key,
+        raw_score=relevance,
+        matched_keywords=bm25_match.matched_keywords,
     ))
 
-    # Keyword Match sub-score (when available)
-    if keyword_score is not None:
-        evidence.append(Evidence(
-            signal="Keyword Match",
-            value=f"{keyword_score:.1f}/100",
-            source="pythainlp_keybert",
-            weight=25.0,
-            available=True,
-        ))
+    # BM25 relevance
+    evidence.append(Evidence(
+        signal="BM25 Content Match",
+        value=f"{bm25_score:.1f}/100",
+        source="rank_bm25",
+        weight=settings.BM25_RELEVANCE_WEIGHT * 100,
+        available=bm25_available,
+        algorithm_key=bm25_match.algorithm_key,
+        raw_score=bm25_match.raw_score,
+        matched_keywords=bm25_match.matched_keywords,
+    ))
 
-    # LLM Judge sub-score (when available)
-    if llm_score is not None:
-        evidence.append(Evidence(
-            signal="LLM Judge",
-            value=f"{llm_score:.1f}/100",
-            source="llm_rubric",
-            weight=20.0,
-            available=True,
-        ))
+    # LLM judge relevance
+    evidence.append(Evidence(
+        signal="LLM Judge Relevance",
+        value=f"{llm_relevance:.1f}/100",
+        source="llm_judge",
+        weight=settings.LLM_RELEVANCE_WEIGHT * 100,
+        available=llm_available,
+        raw_score=llm_relevance,
+    ))
 
     # Engagement
     evidence.append(Evidence(

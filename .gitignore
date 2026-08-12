@@ -20,3 +20,4 @@ out/
 # Local
 .DS_Store
 .codegraph/
+.vercel

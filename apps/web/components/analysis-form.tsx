@@ -4,19 +4,17 @@ import { useState } from 'react'
 
 export function AnalysisForm({
   onAnalyze,
-  onDemo,
   loading,
 }: {
   onAnalyze: (payload: { brand_name: string; facebook_url: string; campaign_goal: string; website_url?: string }) => void
-  onDemo: () => void
   loading: boolean
 }) {
   const [brandName, setBrandName] = useState('')
   const [facebookUrl, setFacebookUrl] = useState('')
-  const [campaignGoal, setCampaignGoal] = useState('educational skincare')
+  const [campaignGoal, setCampaignGoal] = useState('product review')
   const [websiteUrl, setWebsiteUrl] = useState('')
 
-  const goals = ['educational skincare', 'product review', 'awareness', 'conversion', 'launch']
+  const goals = ['product review', 'awareness', 'conversion', 'launch']
 
   return (
     <section className="finder-card">
@@ -35,8 +33,9 @@ export function AnalysisForm({
         }}
       >
         <div className="field">
-          <label>Brand name</label>
+          <label htmlFor="brand-name">Brand name</label>
           <input
+            id="brand-name"
             value={brandName}
             onChange={(e) => setBrandName(e.target.value)}
             placeholder="e.g. Dr. Pong Clinic"
@@ -45,8 +44,9 @@ export function AnalysisForm({
         </div>
 
         <div className="field">
-          <label>Facebook page URL</label>
+          <label htmlFor="facebook-url">Facebook page URL</label>
           <input
+            id="facebook-url"
             type="url"
             value={facebookUrl}
             onChange={(e) => setFacebookUrl(e.target.value)}
@@ -56,8 +56,8 @@ export function AnalysisForm({
         </div>
 
         <div className="field">
-          <label>Campaign goal</label>
-          <select value={campaignGoal} onChange={(e) => setCampaignGoal(e.target.value)}>
+          <label htmlFor="campaign-goal">Campaign goal</label>
+          <select id="campaign-goal" value={campaignGoal} onChange={(e) => setCampaignGoal(e.target.value)}>
             {goals.map((g) => (
               <option key={g} value={g}>{g}</option>
             ))}
@@ -66,7 +66,8 @@ export function AnalysisForm({
 
         <details className="optional-site">
           <summary>Optional: website URL</summary>
-          <input
+            <input
+              id="website-url"
             type="url"
             value={websiteUrl}
             onChange={(e) => setWebsiteUrl(e.target.value)}
@@ -78,19 +79,19 @@ export function AnalysisForm({
           {loading ? 'Analyzing…' : 'Analyze & Find KOLs'}
         </button>
 
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={() => {
-            setBrandName('Dr. Pong Clinic')
-            setFacebookUrl('https://www.facebook.com/drpongclinic')
-            setCampaignGoal('educational skincare')
-            onDemo()
-          }}
-          disabled={loading}
-        >
-          Load Dr. Pong Demo
-        </button>
+        <div className="demo-hint">
+          <button
+            type="button"
+            className="btn-link"
+            onClick={() => {
+              setBrandName('Dr. Pong Clinic')
+              setFacebookUrl('https://www.facebook.com/drpongclinic')
+            }}
+            disabled={loading}
+          >
+            Try Dr. Pong test case →
+          </button>
+        </div>
       </form>
     </section>
   )

@@ -9,22 +9,32 @@ export function CreatorCard({ rec, brand }: { rec: Recommendation; brand: BrandP
   const c = rec.creator
   return (
     <article className="creator-card">
-      <div className="creator-summary" onClick={() => setOpen(!open)}>
-        <div className="rank">#{rec.rank}</div>
-        <div className="creator-name">
-          <strong>{c.display_name || c.username}</strong>
-          <span className="username">@{c.username}</span>
-          {c.tiktok_url && (
-            <a href={c.tiktok_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-              TikTok ↗
-            </a>
-          )}
-        </div>
-        <div className="match-score">{rec.match_score.toFixed(1)}</div>
+      <div className="creator-summary">
+        <button
+          type="button"
+          className="creator-toggle"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
+          <div className="rank">#{rec.rank}</div>
+          <div className="creator-name">
+            <strong>{c.display_name || c.username}</strong>
+            <span className="username">@{c.username}</span>
+          </div>
+          <div className="match-score">{rec.match_score.toFixed(1)}</div>
+        </button>
+        {c.tiktok_url && (
+          <a className="creator-link" href={c.tiktok_url} target="_blank" rel="noreferrer">
+            TikTok ↗
+          </a>
+        )}
       </div>
 
       {open && (
         <div className="creator-detail">
+          <p className="rationale">
+            <strong>Why this match:</strong> {rec.rationale}
+          </p>
           <ScoreBreakdown rec={rec} />
           <p className="explanation">{rec.explanation}</p>
           <ul className="limitations">

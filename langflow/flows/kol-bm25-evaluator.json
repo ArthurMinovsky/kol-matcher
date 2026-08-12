@@ -1,0 +1,83 @@
+{
+  "id": "d4d4f78c-2d3b-4de3-9a98-9e8a22f76b25",
+  "name": "KOL BM25 Evaluator",
+  "description": "Optional Langflow laboratory for comparing versioned KOL matching algorithms.",
+  "data": {
+    "nodes": [
+      {
+        "id": "KOLBM25Matcher-1",
+        "type": "genericNode",
+        "position": {"x": 120, "y": 120},
+        "positionAbsolute": {"x": 120, "y": 120},
+        "width": 384,
+        "height": 320,
+        "data": {
+          "id": "KOLBM25Matcher-1",
+          "type": "KOLBM25Matcher",
+          "display_name": "KOL BM25 Matcher",
+          "description": "Run the API's versioned KOL matching algorithm.",
+          "icon": "waypoints",
+          "node": {
+            "type": "KOLBM25Matcher",
+            "name": "KOLBM25Matcher",
+            "display_name": "KOL BM25 Matcher",
+            "description": "Run the API's versioned KOL matching algorithm.",
+            "icon": "waypoints",
+            "base_classes": ["Data"],
+            "output_types": [],
+            "outputs": [
+              {
+                "name": "matches",
+                "display_name": "Matches",
+                "method": "run_match",
+                "types": ["Data"],
+                "selected": "Data",
+                "value": "__UNDEFINED__"
+              }
+            ],
+            "template": {
+              "_type": "Component",
+              "brand_profile_json": {
+                "name": "brand_profile_json",
+                "display_name": "Brand Profile JSON",
+                "type": "str",
+                "multiline": true,
+                "required": true,
+                "value": "{\"brand_name\":\"Traveloka\",\"topics\":[\"travel\"]}"
+              },
+              "creators_json": {
+                "name": "creators_json",
+                "display_name": "Creators JSON",
+                "type": "str",
+                "multiline": true,
+                "required": true,
+                "value": "[{\"username\":\"travel.with.ink\",\"bio\":\"travel creator\",\"topic_tags\":[\"travel\"]}]"
+              },
+              "algorithm_key": {
+                "name": "algorithm_key",
+                "display_name": "Algorithm",
+                "type": "str",
+                "options": ["bm25_v2_lekcut"],
+                "value": "bm25_v2_lekcut"
+              },
+              "api_url": {
+                "name": "api_url",
+                "display_name": "Matcher API URL",
+                "type": "str",
+                "value": "http://api:8000/api/matching/score",
+                "advanced": true
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+    "value": "import json\nimport httpx\nfrom lfx.custom.custom_component.component import Component\nfrom lfx.io import DropdownInput, MultilineInput, Output, StrInput\nfrom lfx.schema import Data\n\n\nclass KOLBM25Matcher(Component):\n    display_name = \"KOL BM25 Matcher\"\n    description = \"Run the API's versioned KOL matching algorithm.\"\n    documentation = \"https://docs.langflow.org/components-custom-components\"\n    icon = \"waypoints\"\n    name = \"KOLBM25Matcher\"\n    inputs = [\n        MultilineInput(name=\"brand_profile_json\", display_name=\"Brand Profile JSON\", value='{\"brand_name\":\"Traveloka\",\"topics\":[\"travel\"]}'),\n        MultilineInput(name=\"creators_json\", display_name=\"Creators JSON\", value='[{\"username\":\"travel.with.ink\",\"bio\":\"travel creator\",\"topic_tags\":[\"travel\"]}]'),\n        DropdownInput(name=\"algorithm_key\", display_name=\"Algorithm\", options=[\"bm25_v2_lekcut\"], value=\"bm25_v2_lekcut\"),\n        StrInput(name=\"api_url\", display_name=\"Matcher API URL\", value=\"http://api:8000/api/matching/score\", advanced=True),\n    ]\n    outputs = [Output(name=\"matches\", display_name=\"Matches\", method=\"run_match\")]\n    def run_match(self) -> Data:\n        brand_profile = json.loads(self.brand_profile_json)\n        creators = json.loads(self.creators_json)\n        if not isinstance(brand_profile, dict) or not isinstance(creators, list):\n            raise ValueError(\"Brand profile must be an object and creators must be an array\")\n        response = httpx.post(self.api_url, json={\"brand_profile\": brand_profile, \"creators\": creators, \"algorithm_key\": self.algorithm_key}, timeout=60.0)\n        response.raise_for_status()\n        result = response.json()\n        self.status = f\"Matched {len(result.get('matches', []))} creators with {result.get('algorithm_key', self.algorithm_key)}.\"\n        return Data(data=result)"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "edges": [],
+    "viewport": {"x": 0, "y": 0, "zoom": 1}
+  }
+}

@@ -1,169 +1,187 @@
-# OUTCOME — Thai TikTok KOL Matcher (P0)
+# OUTCOME — Truthful Prototype-Ready KOL Matcher
 
 ## Problem
 
-Thai-market brands need a defensible way to shortlist TikTok KOLs. This project
-demonstrates structured brand intelligence + deterministic four-factor creator
-ranking with explicit evidence provenance, reproducible offline from committed
-fixtures, and a polished evaluator-facing web UI.
+The Thai TikTok KOL Matcher currently allows live analysis to fall back to synthetic creator data, conflates fixture data with cached/live data, renormalizes unavailable LLM evidence, and lacks sufficient provenance, evidence gates, runtime bounds, and responsive availability states.
 
-This revision changes the demo input contract: the primary inputs are
-**brand name + Facebook page URL** (website URL optional). Dr. Pong Clinic is
-the committed test case; the demo generalizes to arbitrary brands. Because the
-assessment is TikTok-focused, **Apify (TikTok scraper) is the priority live
-provider for KOL data** when `APIFY_API_TOKEN` is configured.
+The desired result is a truthful prototype: live analysis returns only evidence-qualified live recommendations or a sanitized failure; explicit offline fixtures remain reproducible and clearly labelled.
 
 ## Expected Results
 
-### O1 — Generalized input contract
-- Input: brand name (required), Facebook page URL (required, validated as an
-  http(s) facebook.com URL), campaign goal (required), website URL (optional).
-- `POST /api/analyze` accepts `{brand_name, facebook_url, campaign_goal,
-  website_url?}` and returns `AnalyzeResponse` (brand profile + Top-15
-  recommendations + source status + limitations).
+### O1 — Truthful live/offline boundary
 
-### O2 — Dr. Pong deterministic test case
-- Typing the Dr. Pong brand name or its Facebook URL into the general form
-  auto-routes to the committed fixture pipeline: zero network calls, zero API
-  keys, identical output on every run.
-- `GET /api/demo/drpong` continues to serve the same fixture pipeline.
-- Default recommendation count is Top 15 (was Top 10).
+- `POST /api/analyze` returns recommendations only from accepted live provider records.
+- If live TikTok discovery fails or no creator passes the evidence gate, the request fails closed with zero recommendations.
+- The live path never loads or labels demo-pool creators.
+- `GET /api/demo/drpong` and `POST /api/matching/score` remain explicit offline/lab paths.
+- Offline responses use `result_origin = PROTOTYPE_FIXTURE`.
+- Live responses use `result_origin = LIVE`.
+- Static fixtures are never labelled `CACHED`.
 
-### O3 — Offline general-brand path (no API keys)
-- For arbitrary brands with no LLM keys, brand intelligence uses an
-  industry-keyword dictionary (~8 industries: beauty, food, travel, fashion,
-  fitness, tech, finance, gaming) over the brand name to produce a heuristic
-  BrandProfile.
-- Heuristic profiles are visibly labelled "low-confidence heuristic profile"
-  in API (`limitations`) and UI (badge).
-- Without `APIFY_API_TOKEN`, ranking runs against a committed mixed-industry
-  synthetic demo pool (~20 creators spanning beauty/food/travel/fashion),
-  clearly labelled synthetic in API and UI.
+### O2 — Minimum live evidence
 
-### O4 — LLM brand-extraction path (LLM keys present)
-- Provider order: Typhoon (`TYPHOON_API_KEY`) first, Gemini
-  (`GEMINI_API_KEY`) as fallback; both via OpenAI-compatible HTTP endpoints
-  using httpx. Model names configurable via env vars.
-- LLM output is schema-constrained, prompt-injection-guarded (user/scraped
-  content delimited as untrusted), and Pydantic-validated into BrandProfile.
-- LLM never determines ranking order; it only produces the brand profile.
+Every accepted live creator has:
 
-### O5 — Apify TikTok creator provider (priority live KOL source)
-- When `APIFY_API_TOKEN` is configured, the general analyze path discovers and
-  enriches real TikTok creators via Apify as the **priority** KOL data source:
-  keyword/hashtag search derived from the brand profile's Thai+English
-  keywords, hard-capped result set (~30 candidates), strict timeout.
-- The Apify actor id is configurable via env (`APIFY_TIKTOK_ACTOR`, sensible
-  documented default); responses are normalized into `CreatorProfile` with
-  missing metrics preserved as `None`.
-- Scoring on the live path uses the documented keyword-overlap relevance
-  fallback (no embeddings for live creators) — stated as a limitation.
-- On Apify failure/timeout: `source_status.tiktok = "FAILED"` and the pipeline
-  falls back to the labelled synthetic demo pool; fallback never masquerades
-  as live data.
-- No provider-specific assumptions leak into scoring code.
+- a validated canonical username;
+- a constructed TikTok profile URL;
+- at least three distinct recent posts;
+- a usable non-empty caption for each accepted post.
 
-### O6 — Deterministic ranking quality
-- Match Score = 0.45·relevance + 0.25·engagement + 0.15·thailand_relevance
-  + 0.15·style_fit, all components 0..100, ranking on unrounded values.
-- Tie-breaker: match DESC → relevance DESC → evidence coverage DESC →
-  canonical username ASC.
-- Dr. Pong fixture relevance uses committed embeddings (cosine).
-- Canonical duplicate usernames are deduplicated; malformed creator records
-  fail safe (skipped, surfaced in limitations, never crash the pipeline).
+Malformed, duplicate, hashtag-only, profile-only, or insufficient records are rejected. One accepted creator is sufficient for a successful live response; zero accepted creators is a failure.
 
-### O7 — Trust layer independence
-- Evidence Coverage (0..100), Audience Verification (default "Unavailable"),
-  and Recommendation Confidence (HIGH/MEDIUM/LOW) are computed and displayed
-  independently; none of them modify Match Score or ordering.
+### O3 — Complete provenance
 
-### O8 — Evaluator frontend
-- Single-page dashboard in the javstarfinder-derived dark theme: input card
-  (brand name, Facebook URL, campaign goal, optional website) with prominent
-  "Load Dr. Pong Demo" CTA; Brand Intelligence panel (observed vs inferred
-  badges, provider provenance, heuristic-profile badge when applicable);
-  Top-15 ranking with per-creator four-component scores, evidence coverage,
-  confidence, and expandable explanation/limitations/scoring evidence.
-- All API calls go through `apps/web/lib/api.ts` using
-  `NEXT_PUBLIC_API_BASE_URL` (default http://localhost:8000); no hardcoded
-  endpoint URLs in components.
-- Loading, error, and partial-data states are handled visibly.
+Every live analysis exposes sanitized provenance sufficient to explain what happened:
 
-### O9 — Dockerized evaluator experience
-- `docker compose up --build` from a fresh checkout starts the complete app:
-  web on http://localhost:3000, API on http://localhost:8000, docs at /docs.
-- Ports publish only on 127.0.0.1; web waits on the API healthcheck; the data
-  volume mounts read-only; no Postgres/Redis/Qdrant/workers.
-- Missing optional keys never prevent startup; `docker compose build
-  --no-cache` succeeds clean.
+- provider attempts and order;
+- selected provider;
+- provider outcome/error code;
+- records observed;
+- creators accepted/rejected;
+- capture time;
+- request identifier;
+- model availability and scoring mode.
 
-### O10 — Dr. Pong evaluation
-- `tests/evaluation/` runner computes pairwise relevant-vs-irrelevant ordering
-  accuracy and Precision@5 on the Dr. Pong fixture labels (17 relevant / 8
-  plausible / 15 irrelevant).
-- Acceptance: pairwise accuracy ≥ 90%, P@5 ≥ 80%.
+Provenance never exposes credentials, cookies, authorization headers, raw upstream responses, filesystem paths, prompts, or raw exception text.
 
-### O11 — Documentation
-- README leads with Docker quick start; documents architecture, AI vs
-  deterministic responsibilities, the 45/25/15/15 formula, trust-layer
-  independence, Apify provider behavior and fallback, evaluation results,
-  fixture provenance, limitations, and ethical constraints.
+### O4 — Correct scoring semantics
+
+When LLM judging is available:
+
+```text
+0.20 × BM25
++ 0.25 × LLM relevance
++ 0.25 × Engagement
++ 0.15 × Thailand signals
++ 0.15 × Style fit
+```
+
+When LLM judging is unavailable:
+
+```text
+0.20 × BM25
++ 0.00 × LLM relevance
++ 0.25 × Engagement
++ 0.15 × Thailand signals
++ 0.15 × Style fit
+```
+
+The incomplete result is not renormalized. Unavailable LLM evidence is numeric `0`, `available=false`, and displayed as `Unavailable`/`Not observed`; it must not render as a filled neutral bar.
+
+BM25 remains LEKCut 1.0.0/DeepCut based and keeps algorithm key `bm25_v2_lekcut`.
+
+### O5 — Evidence-aware factor behavior
+
+- Engagement uses only valid recent post metrics, fixed calibration, and weighted median.
+- Follower count is never used as an engagement substitute.
+- Missing Engagement evidence scores `0` and displays `Not observed`.
+- Thailand scoring uses observable content/location signals, including `has_thailand_location`.
+- Thailand signals never claim audience geography.
+- Missing Thailand evidence scores `0` and displays `Not observed`.
+- Style Fit uses a controlled taxonomy and observable evidence.
+- Missing Style evidence scores `0` and displays `Not observed`.
+- A neutral style value is permitted only when the brand explicitly has no style preference.
+- Thai low-signal variants such as `ง่าย`, `ง่ายๆ`, `ทำง่าย`, and `easy` are treated consistently by the versioned matcher.
+
+### O6 — Reliable model and provider behavior
+
+- Typhoon is attempted before Gemini when both are configured.
+- Failover is bounded to one attempt per configured provider.
+- Timeout, rate-limit, upstream, malformed-JSON, and schema-invalid responses are handled explicitly.
+- Every provider response is schema-validated before use.
+- Brand extraction may use a clearly marked partial heuristic result when model extraction is unavailable.
+- LLM judge unavailability never fabricates a relevance contribution or contaminates later requests.
+- Correctness-path process-global caches, including fixture-loader and judge caches, are absent.
+
+### O7 — Safe and bounded request execution
+
+- Required input fields remain `brand_name`, `facebook_url`, and `campaign_goal`; `website_url` remains optional.
+- Invalid, credential-bearing, non-public, private-IP, reserved-host, or unsafe redirect URLs are rejected before crawling.
+- DNS resolution and every redirect destination are validated.
+- Requests, fetched bodies, provider results, prompt text, creator counts, post counts, and concurrent work are bounded.
+- Every live analysis has a 60-second overall deadline and cancels unfinished child work.
+- CORS uses explicit normalized origins, methods, and headers; wildcard origins are rejected.
+- Rate/concurrency protection returns a sanitized `429` when limits are exceeded.
+- Client errors do not expose stack traces, paths, secrets, raw provider errors, or internal topology.
+
+### O8 — Honest accessible frontend
+
+- The UI displays global `LIVE` or `PROTOTYPE FIXTURE` provenance.
+- Failed live analysis clears stale recommendations and shows an actionable sanitized error.
+- Per-card synthetic/demo source copy is removed.
+- Missing Engagement, Thailand, and Style evidence shows `Not observed` with an empty bar.
+- Unavailable LLM evidence shows `Unavailable` with an empty bar.
+- Rationales remain immediately before their relevant score details.
+- TikTok links are constructed from validated creator identities.
+- The Beta pill, creator rows, score rows, and provenance remain usable at 320px, 768px, 1024px, and 1440px.
+- Keyboard focus, semantic labels, expanded state, controlled regions, loading state, and error state are observable to assistive technologies.
+- The Dr. Pong control remains autofill-only and does not submit or change the campaign goal.
+
+### O9 — Preserved deterministic prototype paths
+
+- `/api/demo/drpong` remains credential-free and deterministic.
+- `/api/matching/score` remains deterministic and BM25-only.
+- Existing benchmark thresholds remain pairwise accuracy ≥90% and Precision@5 ≥80%.
+- Docker Compose remains loopback-bound and starts without optional credentials.
+- Langflow remains outside the `/api/analyze` runtime dependency path.
+
+## Machine-Visible Outputs
+
+- `result_origin`: `LIVE` or `PROTOTYPE_FIXTURE`.
+- Evidence records expose `score`, `available`, and human-readable display state.
+- Stable sanitized error codes include:
+  - `VALIDATION_ERROR`
+  - `URL_NOT_ALLOWED`
+  - `LIVE_PROVIDER_UNAVAILABLE`
+  - `MINIMUM_EVIDENCE_UNAVAILABLE`
+  - `REQUEST_DEADLINE_EXCEEDED`
+  - `RATE_LIMITED`
+  - `MODEL_UNAVAILABLE`
+  - `FIXTURE_UNAVAILABLE`
+- Live success responses contain no synthetic creators.
+- Live failure responses contain zero recommendations.
+- Fixture failure responses do not expose filesystem paths.
 
 ## Acceptance Criteria
 
-- From a fresh checkout: `cp .env.example .env && docker compose up --build`;
-  open http://localhost:3000; click "Load Dr. Pong Demo"; BrandProfile, Top
-  15, four score components, evidence/confidence, and cached/synthetic
-  provenance are all visible.
-- From the same form, entering an arbitrary brand without keys returns a
-  heuristic-labelled brand profile and a Top-15 ranking over the mixed demo
-  pool; with `APIFY_API_TOKEN`, the same form ranks real TikTok creators
-  sourced via Apify with `source_status.tiktok = "LIVE"`.
-- `pytest` passes in `apps/api/tests/` and `tests/evaluation/`; the
-  evaluation command prints the Dr. Pong metrics table meeting O10 thresholds.
-- `curl http://localhost:8000/api/health` returns 200;
-  `docker compose build --no-cache` succeeds.
+- Focused backend tests cover validation, URL safety, provider ordering, minimum evidence, provenance, fail-closed behavior, scoring availability, cache isolation, and model failover.
+- Full backend and evaluation suites pass without weakening benchmark thresholds.
+- Frontend type-check and production build pass.
+- Browser verification confirms live failure, explicit fixture provenance, no stale results, score availability states, responsive layouts, keyboard operation, and clean console output.
+- Docker configuration, API health, deterministic endpoints, request deadlines, cleanup, and resource limits are verified.
+- Security checks confirm SSRF/redirect rejection, strict CORS, bounded inputs/outputs, rate protection, sanitized errors, and absence of secret leakage.
+- Existing npm audit and Langflow limitations are reported as separate residual risks if they remain unresolved; they are not silently waived.
 
-## Constraints
+## Constraints and Non-goals
 
-- LLM providers: Typhoon then Gemini only (no OpenAI dependency).
-- Creator data providers: Apify (TikTok) only; Firecrawl / SearXNG / live
-  Facebook scraping remain P1 stubs.
-- No authentication, database, queues, microservices, or vector DB.
-- Synthetic/cached data is always labelled; missing metrics stay `None`,
-  never fabricated zeros; Thailand relevance never described as audience
-  geography; secrets never committed; Apify calls are budget-capped and
-  time-boxed.
-
-## Non-goals
-
-- Live website/Facebook scraping, generalized crawling, agent frameworks.
-- Food/travel evaluation fixtures (replaced by the single mixed demo pool,
-  which is not label-evaluated).
-- P2 extras (Lightpanda, CSV, multimodal).
-- Live-path embeddings (keyword-overlap fallback is the documented behavior).
+- No KeyBERT, sentence-transformers, embeddings, transformer downloads, database, authentication, queues, or vector database.
+- Browser collection remains opt-in and public-only.
+- No stealth patches, CAPTCHA solving, proxy rotation, or access-control bypass.
+- No production deployment or internet-facing exposure is implied by prototype readiness.
+- No database migration is required.
+- The current dirty worktree is preserved; no reset or unrelated cleanup is allowed.
+- Existing required backend `campaign_goal` behavior and public health/demo endpoints remain compatible.
 
 ## Failure Behavior
 
-- Missing LLM keys → heuristic brand path (O3) with visible provenance.
-- Missing/failing Apify → `FAILED` source status + labelled synthetic demo
-  pool fallback; the pipeline continues.
-- Malformed fixture/provider records are skipped and surfaced in
-  `limitations`.
-- Invalid Facebook URL → 400 with a human-readable error.
+- Invalid requests fail before downstream calls.
+- Unsafe URLs fail before crawling.
+- Brand-source or model extraction degradation is surfaced as partial provenance where permitted.
+- TikTok provider failure or zero accepted creators returns a sanitized `503`/`504` and no recommendations.
+- LLM judge failure leaves only BM25’s declared contribution and marks LLM evidence unavailable.
+- Deadline expiry cancels pending work and returns a sanitized timeout response.
+- Rate-limit rejection returns `429` without invoking providers.
+- Fixture loading failure returns a sanitized fixture error and never falls back to live or synthetic data.
 
-## Compatibility
+## Explicit Exclusions
 
-- Existing scaffold (docker-compose, Dockerfiles, models, scorer, fixtures,
-  tests) is preserved and extended, not rewritten. Existing public behavior
-  of `GET /api/health` and `GET /api/demo/drpong` remains intact apart from
-  the Top-15 default.
+- Do not force unrelated dependency upgrades.
+- Do not fix the Langflow Chat Output limitation unless separately approved.
+- Do not add authentication, persistence, or external deployment.
+- Do not claim live-provider verification without live credentials.
 
 ## Approval Record
 
-- Resolved via grilling: generalized FB+brand-name input; Dr. Pong
-  auto-route; offline industry-dictionary heuristic with badge; Typhoon →
-  Gemini LLM priority; Apify as priority live TikTok KOL provider with
-  labelled synthetic fallback; new ~20-creator mixed synthetic demo pool;
-  Top 15; Dr. Pong-only evaluation.
 - Status: APPROVED by user.
+- Supersedes the previous outcome that approved synthetic live fallback and neutral LLM renormalization.
+- Execution basis: `/Users/aminovsky/Desktop/kol-matcher-prototype-readiness_decree.md`.

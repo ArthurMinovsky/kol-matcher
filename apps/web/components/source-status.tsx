@@ -7,7 +7,13 @@ const statusColor: Record<string, string> = {
   FAILED: 'status-failed',
 }
 
-export function SourceStatus({ status }: { status: AnalyzeResponse['source_status'] }) {
+export function SourceStatus({
+  status,
+  provenance,
+}: {
+  status: AnalyzeResponse['source_status']
+  provenance?: AnalyzeResponse['provider_provenance']
+}) {
   return (
     <section className="panel compact">
       <div className="source-strip">
@@ -18,6 +24,13 @@ export function SourceStatus({ status }: { status: AnalyzeResponse['source_statu
           </div>
         ))}
       </div>
+      {provenance && (
+        <div className="source-provenance" aria-label="Provider provenance">
+          {Object.entries(provenance).map(([key, value]) => (
+            <span key={key}>{key}: {value}</span>
+          ))}
+        </div>
+      )}
     </section>
   )
 }
