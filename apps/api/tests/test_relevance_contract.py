@@ -11,12 +11,13 @@ from app.models.creator import CreatorProfile
 from app.services.brand_heuristic import extract_brand_profile_heuristic
 from app.services.bm25_matcher import BM25Match
 from app.services.llm_judge import judge_relevance
-from app.services.scorer import build_scoring_evidence, compute_match_score
+from app.services.scorer import build_scoring_evidence, compute_effective_relevance
 
 
 def test_relevance_weights_are_bm25_20_and_llm_judge_25():
     assert settings.BM25_RELEVANCE_WEIGHT == 0.20
     assert settings.LLM_RELEVANCE_WEIGHT == 0.25
+    assert settings.RELEVANCE_WEIGHT == 0.45
 
 
 @pytest.mark.asyncio
@@ -74,6 +75,7 @@ def test_scoring_evidence_separates_bm25_and_llm_weights():
 
     evidence = build_scoring_evidence(
         creator=creator,
+        relevance=72.22,
         bm25_relevance=80.0,
         llm_relevance=66.0,
         engagement=50.0,
@@ -84,11 +86,12 @@ def test_scoring_evidence_separates_bm25_and_llm_weights():
     )
     by_signal = {item.signal: item for item in evidence}
 
-    assert "Combined Relevance" not in by_signal
+    assert by_signal["Combined Relevance"].weight == 45.0
     assert by_signal["BM25 Content Match"].weight == 20.0
     assert by_signal["LLM Judge Relevance"].weight == 25.0
     assert by_signal["LLM Judge Relevance"].available is False
 
 
-def test_unavailable_llm_shifts_its_weight_to_bm25_in_match_score():
-    assert compute_match_score(72.0, 50.0, 0.0, 0.0, 0.0, llm_available=False) == 72.0 * 0.45
+def test_unavailable_llm_keeps_neutral_evidence_but_not_effective_relevance():
+    assert compute_effective_relevance(0.0, 50.0, llm_available=False) == 0.0
+    assert compute_effective_relevance(72.0, 50.0, llm_available=False) == 72.0

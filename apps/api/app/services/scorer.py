@@ -29,11 +29,42 @@ if TYPE_CHECKING:
     from ..models.brand import BrandProfile
 
 
-# ── 1. BM25 Content Match ──────────────────────────────────────────────────
+# ── 1. Relevance Score ─────────────────────────────────────────────────────
 
 def compute_relevance(match: BM25Match) -> float:
     """Return the normalized BM25 relevance produced by the selected matcher."""
     return float(np.clip(match.normalized_score, 0.0, 100.0))
+
+
+def compute_combined_relevance(bm25_relevance: float, llm_relevance: float) -> float:
+    """Combine BM25 and LLM relevance inside the 45% relevance bucket."""
+    bm25 = float(np.clip(bm25_relevance, 0.0, 100.0))
+    llm = float(np.clip(llm_relevance, 0.0, 100.0))
+    return float(
+        np.clip(
+            bm25 * settings.RELEVANCE_BM25_BUCKET_WEIGHT
+            + llm * settings.RELEVANCE_LLM_BUCKET_WEIGHT,
+            0.0,
+            100.0,
+        )
+    )
+
+
+def compute_effective_relevance(
+    bm25_relevance: float,
+    llm_relevance: float,
+    *,
+    llm_available: bool,
+) -> float:
+    """Return relevance after excluding unavailable judge evidence.
+
+    The displayed unavailable judge score remains neutral at 50, but it must
+    not contribute to ordering. When unavailable, the relevance bucket is
+    renormalized to the available BM25 signal.
+    """
+    if not llm_available:
+        return float(np.clip(bm25_relevance, 0.0, 100.0))
+    return compute_combined_relevance(bm25_relevance, llm_relevance)
 
 
 # ── 2. Engagement Score ────────────────────────────────────────────────────
@@ -161,20 +192,19 @@ def compute_match_score(
     style_fit: float,
     llm_available: bool = True,
 ) -> float:
-    """Weighted sum of the named match criteria → 0..100.
+    """Weighted sum of effective relevance and remaining scores → 0..100.
 
-    If the LLM judge is unavailable, its 25% contribution shifts to the
-    independently displayed BM25 Content Match criterion.
+    When the judge is unavailable, its displayed neutral score is excluded and
+    the relevance bucket is renormalized to BM25. Weights are defined in
+    Settings and must sum to 1.0.
     """
-    bm25_weight = (
-        settings.BM25_RELEVANCE_WEIGHT + settings.LLM_RELEVANCE_WEIGHT
-        if not llm_available
-        else settings.BM25_RELEVANCE_WEIGHT
+    effective_relevance = compute_effective_relevance(
+        bm25_relevance,
+        llm_relevance,
+        llm_available=llm_available,
     )
-    llm_weight = settings.LLM_RELEVANCE_WEIGHT if llm_available else 0.0
     return (
-        bm25_relevance * bm25_weight
-        + llm_relevance * llm_weight
+        effective_relevance * settings.RELEVANCE_WEIGHT
         + engagement * settings.ENGAGEMENT_WEIGHT
         + thailand_relevance * settings.THAILAND_WEIGHT
         + style_fit * settings.STYLE_WEIGHT
@@ -257,6 +287,7 @@ def compute_recommendation_confidence(
 
 def build_scoring_evidence(
     creator: CreatorProfile,
+    relevance: float,
     engagement: float,
     thailand_relevance: float,
     style_fit: float,
@@ -275,6 +306,21 @@ def build_scoring_evidence(
         else bm25_relevance
     )
     bm25_available = bm25_match.raw_score > 0 or bool(bm25_match.matched_keywords)
+
+    # Combined/effective relevance
+    combined_source = (
+        "hybrid_relevance" if llm_available else "bm25_relevance_renormalized"
+    )
+    evidence.append(Evidence(
+        signal="Combined Relevance",
+        value=f"{relevance:.1f}/100",
+        source=combined_source,
+        weight=settings.RELEVANCE_WEIGHT * 100,
+        available=bm25_available or llm_available,
+        algorithm_key=bm25_match.algorithm_key,
+        raw_score=relevance,
+        matched_keywords=bm25_match.matched_keywords,
+    ))
 
     # BM25 relevance
     evidence.append(Evidence(

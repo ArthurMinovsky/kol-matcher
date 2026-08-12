@@ -6,6 +6,7 @@ import pytest
 from app.models.brand import BrandProfile
 from app.models.creator import CreatorPost, CreatorProfile
 from app.services.ranker import score_and_rank
+from app.services.scorer import compute_combined_relevance
 from unittest.mock import AsyncMock
 
 
@@ -56,7 +57,7 @@ async def test_malformed_creator_skipped_without_crash():
 
 
 @pytest.mark.asyncio
-async def test_tie_breaker_uses_bm25_then_llm_then_coverage_then_username():
+async def test_tie_breaker_uses_relevance_then_coverage_then_username():
     brand = BrandProfile(brand_name="X", desired_style_tags=["educational"])
     a = _make_creator("aaa", topic_tags=["skincare"], thai_caption_ratio=0.9)
     b = _make_creator("bbb", topic_tags=["skincare"], thai_caption_ratio=0.5)
@@ -74,7 +75,7 @@ async def test_ranking_is_deterministic():
 
 
 @pytest.mark.asyncio
-async def test_ranking_exposes_named_relevance_criteria_and_llm_rationale(monkeypatch):
+async def test_ranking_exposes_hybrid_relevance_and_llm_rationale(monkeypatch):
     judge = AsyncMock(
         return_value=[
             {
@@ -111,8 +112,13 @@ async def test_ranking_exposes_named_relevance_criteria_and_llm_rationale(monkey
     recommendation = recommendations[0]
     assert recommendation.bm25_relevance > 0
     assert recommendation.llm_relevance == 80.0
-    assert "relevance" not in recommendation.model_dump()
-    assert all(item.signal != "Combined Relevance" for item in recommendation.scoring_evidence)
+    assert recommendation.relevance == pytest.approx(
+        compute_combined_relevance(
+            recommendation.bm25_relevance,
+            recommendation.llm_relevance,
+        ),
+        abs=0.01,
+    )
     assert recommendation.rationale == "Strong skincare topic fit."
     assert any(
         item.signal == "LLM Judge Relevance" and item.available
@@ -170,7 +176,7 @@ async def test_unavailable_llm_does_not_add_neutral_relevance_to_unmatched_creat
         "unmatched",
     ]
     assert recommendations[1].llm_relevance == 50.0
-    assert "relevance" not in recommendations[1].model_dump()
+    assert recommendations[1].relevance == 0.0
     assert any(
         item.signal == "LLM Judge Relevance"
         and item.value == "50.0/100"

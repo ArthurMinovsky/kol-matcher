@@ -41,11 +41,16 @@ class Settings(BaseSettings):
     tiktok_browser_max_creators: int = 30
 
     # ── Match Score weights (must sum to 1.0) ─────────────────────────────
+    RELEVANCE_WEIGHT: float = 0.45
     BM25_RELEVANCE_WEIGHT: float = 0.20
     LLM_RELEVANCE_WEIGHT: float = 0.25
     ENGAGEMENT_WEIGHT: float = 0.25
     THAILAND_WEIGHT: float = 0.15
     STYLE_WEIGHT: float = 0.15
+
+    # Relative weights inside the 45% relevance bucket.
+    RELEVANCE_BM25_BUCKET_WEIGHT: float = 20 / 45
+    RELEVANCE_LLM_BUCKET_WEIGHT: float = 25 / 45
 
     # ── Thailand Market Relevance signal weights (must sum to 100) ─────────
     THAILAND_CAPTION_RATIO_WEIGHT: int = 40
