@@ -47,7 +47,6 @@ export interface Recommendation {
   match_score: number
   bm25_relevance: number
   llm_relevance: number
-  relevance: number
   engagement: number
   thailand_relevance: number
   style_fit: number

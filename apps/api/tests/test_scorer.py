@@ -18,8 +18,6 @@ from app.models.brand import BrandProfile
 from app.models.creator import CreatorPost, CreatorProfile
 from app.services.bm25_matcher import score_creators
 from app.services.scorer import (
-    compute_combined_relevance,
-    compute_effective_relevance,
     compute_engagement,
     compute_evidence_coverage,
     compute_match_score,
@@ -95,7 +93,8 @@ BRAND_PROFILE = BrandProfile(
 def test_weights_sum_to_one():
     """Config weights must sum exactly to 1.0."""
     total = (
-        settings.RELEVANCE_WEIGHT
+        settings.BM25_RELEVANCE_WEIGHT
+        + settings.LLM_RELEVANCE_WEIGHT
         + settings.ENGAGEMENT_WEIGHT
         + settings.THAILAND_WEIGHT
         + settings.STYLE_WEIGHT
@@ -267,20 +266,10 @@ def test_match_score_weighted_correctly():
     assert compute_match_score(bm25, llm, e, t, s) == expected
 
 
-def test_combined_relevance_normalizes_the_45_percent_bucket():
-    assert compute_combined_relevance(100.0, 100.0) == 100.0
-    assert abs(compute_combined_relevance(100.0, 0.0) - (20.0 / 45.0 * 100.0)) < 1e-6
-    assert abs(compute_combined_relevance(0.0, 100.0) - (25.0 / 45.0 * 100.0)) < 1e-6
-
-
-def test_unavailable_llm_relevance_renormalizes_to_bm25():
-    assert compute_effective_relevance(80.0, 50.0, llm_available=False) == 80.0
-
-
-def test_available_llm_relevance_keeps_hybrid_weights():
-    assert compute_effective_relevance(80.0, 60.0, llm_available=True) == pytest.approx(
-        compute_combined_relevance(80.0, 60.0)
-    )
+def test_unavailable_llm_shifts_its_weight_to_bm25():
+    score = compute_match_score(80.0, 50.0, 60.0, 40.0, 20.0, llm_available=False)
+    expected = 80.0 * 0.45 + 60.0 * 0.25 + 40.0 * 0.15 + 20.0 * 0.15
+    assert score == pytest.approx(expected)
 
 
 def test_match_score_ordering():

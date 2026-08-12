@@ -9,8 +9,8 @@ The fixture path does not call any external service.
 The live path (P1) additionally calls the scraper and brand extractor.
 
 Invariants:
-- Recommendations are sorted by match_score descending, then relevance,
-  evidence coverage, and canonical username for deterministic tie-breaking.
+- Recommendations are sorted by match_score descending, then BM25 content
+  match, LLM judge relevance, evidence coverage, and canonical username.
 - Top-N is configurable (default 15).
 - Confidence and audience_verification are derived, not user-input.
 """
@@ -31,7 +31,6 @@ from ..services.scorer import (
     build_engagement_pool,
     build_scoring_evidence,
     compute_engagement,
-    compute_effective_relevance,
     compute_evidence_coverage,
     compute_match_score,
     compute_recommendation_confidence,
@@ -46,7 +45,8 @@ _DEFAULT_TOP_N = 15
 def _build_explanation(
     creator: CreatorProfile,
     brand: BrandProfile,
-    relevance: float,
+    bm25_relevance: float,
+    llm_relevance: float,
     engagement: float,
     thailand: float,
     style_fit: float,
@@ -56,7 +56,8 @@ def _build_explanation(
     return (
         f"@{creator.username} creates content about {top_topics}, "
         f"aligning with {brand.brand_name}'s focus on {brand.campaign_goal}. "
-        f"Relevance: {relevance:.0f}/100, Engagement: {engagement:.0f}/100, "
+        f"BM25 content match: {bm25_relevance:.0f}/100, LLM judge: {llm_relevance:.0f}/100, "
+        f"Engagement: {engagement:.0f}/100, "
         f"Thailand signals: {thailand:.0f}/100, Style fit: {style_fit:.0f}/100."
     )
 
@@ -150,9 +151,10 @@ async def score_and_rank(
 
     Tie-breaker chain:
       1. match_score DESC
-      2. relevance DESC
-      3. evidence coverage DESC
-      4. canonical username ASC
+      2. BM25 content match DESC
+      3. LLM judge relevance DESC
+      4. evidence coverage DESC
+      5. canonical username ASC
 
     Malformed creators are skipped safely.
     """
@@ -216,12 +218,6 @@ async def score_and_rank(
             judge_result = judge_by_username[creator.username.lower().strip()]
             llm_relevance = float(judge_result.get("score", 50.0))
             llm_available = bool(judge_result.get("available"))
-            relevance = compute_effective_relevance(
-                bm25_relevance,
-                llm_relevance,
-                llm_available=llm_available,
-            )
-
             engagement = compute_engagement(creator, pool_rates)
             thailand = compute_thailand_relevance(creator)
             style_fit = compute_style_fit(creator, brand.desired_style_tags)
@@ -238,7 +234,6 @@ async def score_and_rank(
                 (
                     creator,
                     match_score,
-                    relevance,
                     bm25_relevance,
                     llm_relevance,
                     engagement,
@@ -258,8 +253,9 @@ async def score_and_rank(
     scored.sort(
         key=lambda x: (
             -x[1],  # match_score DESC
-            -x[2],  # relevance DESC
-            -x[8],  # evidence coverage DESC
+            -x[2],  # BM25 content match DESC
+            -x[3],  # LLM judge relevance DESC
+            -x[7],  # evidence coverage DESC
             x[0].username.lower(),  # username ASC
         )
     )
@@ -268,7 +264,6 @@ async def score_and_rank(
     for rank, (
         creator,
         match_score,
-        relevance,
         bm25_relevance,
         llm_relevance,
         engagement,
@@ -282,7 +277,6 @@ async def score_and_rank(
         confidence = compute_recommendation_confidence(coverage, match_score)
         scoring_evidence = build_scoring_evidence(
             creator,
-            relevance,
             engagement,
             thailand,
             style_fit,
@@ -298,7 +292,6 @@ async def score_and_rank(
             match_score=round(match_score, 2),
             bm25_relevance=round(bm25_relevance, 2),
             llm_relevance=round(llm_relevance, 2),
-            relevance=round(relevance, 2),
             engagement=round(engagement, 2),
             thailand_relevance=round(thailand, 2),
             style_fit=round(style_fit, 2),
@@ -314,7 +307,7 @@ async def score_and_rank(
                 judge_result,
             ),
             explanation=_build_explanation(
-                creator, brand, relevance, engagement, thailand, style_fit
+                creator, brand, bm25_relevance, llm_relevance, engagement, thailand, style_fit
             ),
             limitations=_build_limitations(creator),
             scoring_evidence=scoring_evidence,

@@ -24,7 +24,6 @@ class Recommendation(BaseModel):
     match_score: float
     bm25_relevance: float
     llm_relevance: float
-    relevance: float
     engagement: float
     thailand_relevance: float
     style_fit: float
